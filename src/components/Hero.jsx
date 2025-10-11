@@ -1,10 +1,12 @@
-import React, { useEffect, useRef } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import {
   FiPlay,
   FiShield,
   FiHeart,
   FiStar,
   FiShoppingBag,
+  FiChevronLeft,
+  FiChevronRight,
 } from "react-icons/fi";
 import { motion, useInView, useAnimation } from "framer-motion";
 
@@ -12,12 +14,68 @@ const Hero = () => {
   const ref = useRef(null);
   const isInView = useInView(ref, { once: true, amount: 0.3 });
   const controls = useAnimation();
+  const [currentImage, setCurrentImage] = useState(0);
+
+  // Dummy product images for the slider
+  const productImages = [
+    {
+      id: 1,
+      title: "Front View",
+      description: "সামনের দৃশ্য - সম্পূর্ণ কভারেজ",
+      gradient: "from-purple-400 via-pink-400 to-blue-400",
+      color: "purple",
+    },
+    {
+      id: 2,
+      title: "Side View",
+      description: "পাশের দৃশ্য - স্টাইলিশ ডিজাইন",
+      gradient: "from-blue-400 via-cyan-400 to-green-400",
+      color: "blue",
+    },
+    {
+      id: 3,
+      title: "Back View",
+      description: "পিছনের দৃশ্য - আরামদায়ক ফিট",
+      gradient: "from-green-400 via-emerald-400 to-teal-400",
+      color: "green",
+    },
+    {
+      id: 4,
+      title: "Details",
+      description: "বিশেষ ডিটেইলস - হিডেন পকেট",
+      gradient: "from-orange-400 via-red-400 to-pink-400",
+      color: "orange",
+    },
+    {
+      id: 5,
+      title: "Fabric Close-up",
+      description: "ফ্যাব্রিক ক্লোজ-আপ - প্রিমিয়াম কোয়ালিটি",
+      gradient: "from-indigo-400 via-purple-400 to-pink-400",
+      color: "indigo",
+    },
+  ];
 
   useEffect(() => {
     if (isInView) {
       controls.start("visible");
     }
   }, [isInView, controls]);
+
+  const nextImage = () => {
+    setCurrentImage((prev) => (prev + 1) % productImages.length);
+  };
+
+  const prevImage = () => {
+    setCurrentImage(
+      (prev) => (prev - 1 + productImages.length) % productImages.length
+    );
+  };
+
+  // Auto slide
+  useEffect(() => {
+    const interval = setInterval(nextImage, 4000);
+    return () => clearInterval(interval);
+  }, []);
 
   const containerVariants = {
     hidden: { opacity: 0 },
@@ -67,6 +125,26 @@ const Hero = () => {
         ease: "easeInOut",
       },
     },
+  };
+
+  const slideVariants = {
+    enter: (direction) => ({
+      x: direction > 0 ? 300 : -300,
+      opacity: 0,
+      scale: 0.8,
+    }),
+    center: {
+      zIndex: 1,
+      x: 0,
+      opacity: 1,
+      scale: 1,
+    },
+    exit: (direction) => ({
+      zIndex: 0,
+      x: direction < 0 ? 300 : -300,
+      opacity: 0,
+      scale: 0.8,
+    }),
   };
 
   return (
@@ -278,61 +356,164 @@ const Hero = () => {
             </motion.div>
           </div>
 
-          {/* Enhanced Product Display */}
+          {/* Enhanced Product Display with Image Slider */}
           <motion.div
             variants={floatVariants}
             animate="float"
             className="relative"
           >
-            {/* Main Product Card */}
+            {/* Main Product Card with Image Slider */}
             <motion.div
               whileHover={{
-                rotateY: 10,
+                rotateY: 5,
                 transition: { duration: 0.5 },
               }}
-              className="bg-white rounded-3xl shadow-2xl p-8 transform perspective-1000 hover:shadow-3xl transition-all duration-500 border border-white/20 backdrop-blur-sm"
+              className="bg-white rounded-3xl shadow-2xl p-6 transform perspective-1000 hover:shadow-3xl transition-all duration-500 border border-white/20 backdrop-blur-sm"
             >
-              <div className="bg-gradient-to-br from-purple-100 via-pink-100 to-blue-100 rounded-2xl p-8 aspect-square flex items-center justify-center relative overflow-hidden">
-                {/* Animated Product Silhouette */}
-                <motion.div
-                  animate={{
-                    y: [0, -10, 0],
-                    rotate: [0, 2, 0, -2, 0],
-                  }}
-                  transition={{
-                    duration: 6,
-                    repeat: Infinity,
-                    ease: "easeInOut",
-                  }}
-                  className="text-center relative"
-                >
-                  <div className="w-40 h-52 bg-gradient-to-b from-purple-300 via-pink-300 to-blue-300 rounded-2xl mx-auto mb-6 shadow-2xl relative overflow-hidden">
-                    {/* Hidden Pocket Indicator */}
-                    <motion.div
-                      animate={{ x: [0, 5, 0] }}
-                      transition={{ duration: 3, repeat: Infinity }}
-                      className="absolute right-3 top-1/2 transform -translate-y-1/2"
-                    >
-                      <div className="w-8 h-10 bg-yellow-400 rounded-lg border-2 border-white shadow-xl flex items-center justify-center">
-                        <FiShoppingBag className="text-white text-sm" />
-                      </div>
-                      <div className="text-xs mt-1 font-bold text-gray-700 bg-white/80 rounded px-1">
-                        পকেট
-                      </div>
-                    </motion.div>
-                  </div>
-                  <motion.p
-                    animate={{ opacity: [0.7, 1, 0.7] }}
-                    transition={{ duration: 2, repeat: Infinity }}
-                    className="text-gray-700 font-semibold text-lg"
+              <div className="bg-gradient-to-br from-purple-50 via-pink-50 to-blue-50 rounded-2xl p-4 aspect-square flex items-center justify-center relative overflow-hidden">
+                {/* Image Slider Container */}
+                <div className="relative w-full h-full rounded-xl overflow-hidden">
+                  <motion.div
+                    key={currentImage}
+                    custom={1}
+                    variants={slideVariants}
+                    initial="enter"
+                    animate="center"
+                    exit="exit"
+                    transition={{
+                      x: { type: "spring", stiffness: 300, damping: 30 },
+                      opacity: { duration: 0.5 },
+                      scale: { duration: 0.5 },
+                    }}
+                    className={`absolute inset-0 bg-gradient-to-br ${productImages[currentImage].gradient} rounded-xl flex flex-col items-center justify-center text-white p-6`}
                   >
-                    Premium 3D Preview
-                  </motion.p>
-                </motion.div>
+                    {/* Animated Product Silhouette */}
+                    <motion.div
+                      initial={{ scale: 0.9, opacity: 0 }}
+                      animate={{ scale: 1, opacity: 1 }}
+                      transition={{ delay: 0.3 }}
+                      className="text-center relative w-full h-full flex flex-col items-center justify-center"
+                    >
+                      <div className="w-32 h-40 bg-white/20 rounded-2xl mx-auto mb-4 shadow-2xl backdrop-blur-sm border border-white/30 relative">
+                        {/* Hidden Pocket Indicator */}
+                        <motion.div
+                          animate={{ x: [0, 5, 0] }}
+                          transition={{ duration: 3, repeat: Infinity }}
+                          className="absolute right-2 top-1/2 transform -translate-y-1/2"
+                        >
+                          <div className="w-6 h-8 bg-yellow-400 rounded-lg border-2 border-white shadow-xl flex items-center justify-center">
+                            <FiShoppingBag className="text-white text-xs" />
+                          </div>
+                        </motion.div>
+
+                        {/* Dynamic Product Details Based on Image */}
+                        {currentImage === 0 && (
+                          <motion.div
+                            initial={{ opacity: 0 }}
+                            animate={{ opacity: 1 }}
+                            className="absolute left-2 top-4 w-3 h-16 bg-white/30 rounded-full"
+                          />
+                        )}
+                        {currentImage === 1 && (
+                          <motion.div
+                            initial={{ opacity: 0 }}
+                            animate={{ opacity: 1 }}
+                            className="absolute left-4 top-8 w-2 h-12 bg-white/30 rounded-full rotate-45"
+                          />
+                        )}
+                        {currentImage === 3 && (
+                          <motion.div
+                            initial={{ opacity: 0 }}
+                            animate={{ opacity: 1 }}
+                            className="absolute left-8 bottom-4 w-8 h-3 bg-white/30 rounded-full"
+                          />
+                        )}
+                      </div>
+
+                      <motion.div
+                        initial={{ y: 20, opacity: 0 }}
+                        animate={{ y: 0, opacity: 1 }}
+                        transition={{ delay: 0.5 }}
+                        className="text-center"
+                      >
+                        <h3 className="text-lg font-black mb-2">
+                          {productImages[currentImage].title}
+                        </h3>
+                        <p className="text-sm font-medium opacity-90">
+                          {productImages[currentImage].description}
+                        </p>
+                      </motion.div>
+                    </motion.div>
+                  </motion.div>
+
+                  {/* Navigation Arrows */}
+                  <button
+                    onClick={prevImage}
+                    className="absolute left-2 top-1/2 transform -translate-y-1/2 w-8 h-8 bg-white/90 backdrop-blur-sm rounded-full flex items-center justify-center shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-110 border border-white/20 z-10"
+                  >
+                    <FiChevronLeft className="text-gray-800 text-lg" />
+                  </button>
+                  <button
+                    onClick={nextImage}
+                    className="absolute right-2 top-1/2 transform -translate-y-1/2 w-8 h-8 bg-white/90 backdrop-blur-sm rounded-full flex items-center justify-center shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-110 border border-white/20 z-10"
+                  >
+                    <FiChevronRight className="text-gray-800 text-lg" />
+                  </button>
+
+                  {/* Slide Indicators */}
+                  <div className="absolute bottom-3 left-1/2 transform -translate-x-1/2 flex space-x-1 z-10">
+                    {productImages.map((_, index) => (
+                      <button
+                        key={index}
+                        onClick={() => setCurrentImage(index)}
+                        className={`w-2 h-2 rounded-full transition-all duration-300 ${
+                          index === currentImage
+                            ? "bg-white scale-125"
+                            : "bg-white/50 hover:bg-white/80"
+                        }`}
+                      />
+                    ))}
+                  </div>
+
+                  {/* Image Counter */}
+                  <div className="absolute top-3 right-3 bg-black/30 backdrop-blur-sm rounded-full px-2 py-1">
+                    <span className="text-white text-xs font-bold">
+                      {currentImage + 1} / {productImages.length}
+                    </span>
+                  </div>
+                </div>
               </div>
+
+              {/* Product Info Below Slider */}
+              <motion.div
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.8 }}
+                className="text-center mt-4"
+              >
+                <motion.p
+                  animate={{ opacity: [0.7, 1, 0.7] }}
+                  transition={{ duration: 2, repeat: Infinity }}
+                  className="text-gray-700 font-semibold text-lg mb-2"
+                >
+                  Premium 3D Preview
+                </motion.p>
+                <div className="flex justify-center space-x-2">
+                  {productImages.map((image, index) => (
+                    <div
+                      key={image.id}
+                      className={`w-2 h-2 rounded-full transition-all duration-300 ${
+                        currentImage === index
+                          ? `bg-${image.color}-500`
+                          : "bg-gray-300"
+                      }`}
+                    />
+                  ))}
+                </div>
+              </motion.div>
             </motion.div>
 
-            {/* Fixed 20% Off Badge - No Rotation */}
+            {/* Fixed 20% Off Badge */}
             <motion.div
               animate={{
                 y: [-15, 15, -15],
@@ -343,13 +524,13 @@ const Hero = () => {
                 repeat: Infinity,
                 ease: "easeInOut",
               }}
-              className="absolute -top-6 -right-6 bg-gradient-to-r from-yellow-400 to-orange-500 text-white rounded-2xl w-20 h-20 flex items-center justify-center shadow-2xl border-4 border-white"
+              className="absolute -top-4 -right-4 bg-gradient-to-r from-yellow-400 to-orange-500 text-white rounded-2xl w-16 h-16 flex items-center justify-center shadow-2xl border-4 border-white"
             >
               <div className="text-center">
-                <span className="font-black text-lg block leading-tight">
+                <span className="font-black text-sm block leading-tight">
                   -২০%
                 </span>
-                <span className="text-[10px] font-bold block mt-1">OFF</span>
+                <span className="text-[8px] font-bold block">OFF</span>
               </div>
             </motion.div>
 
@@ -365,19 +546,19 @@ const Hero = () => {
                 ease: "easeInOut",
                 delay: 1,
               }}
-              className="absolute -bottom-6 -left-6 bg-gradient-to-r from-green-500 to-emerald-600 text-white rounded-2xl w-24 h-24 flex items-center justify-center shadow-2xl border-4 border-white"
+              className="absolute -bottom-4 -left-4 bg-gradient-to-r from-green-500 to-emerald-600 text-white rounded-2xl w-20 h-20 flex items-center justify-center shadow-2xl border-4 border-white"
             >
               <div className="text-center">
-                <span className="text-xs font-black block leading-tight">
+                <span className="text-[10px] font-black block leading-tight">
                   নতুন
                 </span>
-                <span className="text-xs font-black block leading-tight">
+                <span className="text-[10px] font-black block leading-tight">
                   কালেকশন
                 </span>
                 <motion.div
                   animate={{ scale: [1, 1.2, 1] }}
                   transition={{ duration: 2, repeat: Infinity, delay: 0.5 }}
-                  className="w-2 h-2 bg-white rounded-full mx-auto mt-1"
+                  className="w-1.5 h-1.5 bg-white rounded-full mx-auto mt-1"
                 />
               </div>
             </motion.div>
@@ -386,17 +567,17 @@ const Hero = () => {
             {[...Array(6)].map((_, i) => (
               <motion.div
                 key={i}
-                className={`absolute w-4 h-4 bg-gradient-to-r from-purple-400 to-pink-400 rounded-full ${
+                className={`absolute w-3 h-3 bg-gradient-to-r from-purple-400 to-pink-400 rounded-full ${
                   i % 2 === 0 ? "animate-pulse" : ""
                 }`}
                 style={{
                   top: `${20 + i * 12}%`,
-                  left: i % 2 === 0 ? "-10%" : "110%",
+                  left: i % 2 === 0 ? "-8%" : "108%",
                 }}
                 animate={{
-                  y: [0, -30, 0],
+                  y: [0, -20, 0],
                   opacity: [0.3, 0.8, 0.3],
-                  scale: [1, 1.5, 1],
+                  scale: [1, 1.3, 1],
                 }}
                 transition={{
                   duration: Math.random() * 3 + 2,
