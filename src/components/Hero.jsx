@@ -7,53 +7,147 @@ import {
   FiShoppingBag,
   FiChevronLeft,
   FiChevronRight,
+  FiX,
+  FiImage,
 } from "react-icons/fi";
-import { motion, useInView, useAnimation } from "framer-motion";
+import {
+  motion,
+  useInView,
+  useAnimation,
+  AnimatePresence,
+} from "framer-motion";
+import SuccessMessage from "./SuccessMesage";
+import OrderModal from "./OrderModal";
+import useFetch from "../hooks/useFetch";
 
 const Hero = () => {
   const ref = useRef(null);
-  const isInView = useInView(ref, { once: true, amount: 0.3 });
+  const isInView = useInView(ref, { once: true });
   const controls = useAnimation();
-  const [currentImage, setCurrentImage] = useState(0);
+  const [currentSlide, setCurrentSlide] = useState(0);
+  const [direction, setDirection] = useState(0);
+  const [showOrderModal, setShowOrderModal] = useState(false);
+  const [showSuccessMessage, setShowSuccessMessage] = useState(false);
+  const [showVideoModal, setShowVideoModal] = useState(false);
+  const [orderForm, setOrderForm] = useState({
+    name: "",
+    phone: "",
+    address: "",
+    size: "",
+    quantity: "1",
+  });
+  const [heroContent, setHeroContent] = useState({
+    heroTitle: "ঝিনুকের মধ্যে মুক্তা তেমন সুরক্ষিত",
+    heroSubtitle:
+      "তেমনই আপনার পর্দাও – Ronjit Super Cherry ফ্যাব্রিক দিয়ে তৈরি Damamah Sonnoti Burka",
+    youtubeVideoUrl: "",
+  });
+  const [product, setProduct] = useState(null);
+  const [hasFetchedContent, setHasFetchedContent] = useState(false);
+  const [imageErrors, setImageErrors] = useState({});
 
-  // Dummy product images for the slider
-  const productImages = [
-    {
-      id: 1,
-      title: "Front View",
-      description: "সামনের দৃশ্য - সম্পূর্ণ কভারেজ",
-      gradient: "from-purple-400 via-pink-400 to-blue-400",
-      color: "purple",
-    },
-    {
-      id: 2,
-      title: "Side View",
-      description: "পাশের দৃশ্য - স্টাইলিশ ডিজাইন",
-      gradient: "from-blue-400 via-cyan-400 to-green-400",
-      color: "blue",
-    },
-    {
-      id: 3,
-      title: "Back View",
-      description: "পিছনের দৃশ্য - আরামদায়ক ফিট",
-      gradient: "from-green-400 via-emerald-400 to-teal-400",
-      color: "green",
-    },
-    {
-      id: 4,
-      title: "Details",
-      description: "বিশেষ ডিটেইলস - হিডেন পকেট",
-      gradient: "from-orange-400 via-red-400 to-pink-400",
-      color: "orange",
-    },
-    {
-      id: 5,
-      title: "Fabric Close-up",
-      description: "ফ্যাব্রিক ক্লোজ-আপ - প্রিমিয়াম কোয়ালিটি",
-      gradient: "from-indigo-400 via-purple-400 to-pink-400",
-      color: "indigo",
-    },
-  ];
+  const { get } = useFetch();
+  const sizes = ["৪৮", "৫০", "৫২", "৫৪", "৫৬", "৫৮"];
+
+  // Fetch all website content and product data
+  useEffect(() => {
+    const fetchWebsiteContent = async () => {
+      if (hasFetchedContent) return;
+
+      try {
+        // Fetch website content
+        const contentResponse = await get("/website-content");
+        if (contentResponse.success && contentResponse.data.content) {
+          const content = contentResponse.data.content;
+          setHeroContent({
+            heroTitle:
+              content.heroTitle || "ঝিনুকের মধ্যে মুক্তা তেমন সুরক্ষিত",
+            heroSubtitle:
+              content.heroSubtitle ||
+              "তেমনই আপনার পর্দাও – Ronjit Super Cherry ফ্যাব্রিক দিয়ে তৈরি Damamah Sonnoti Burka",
+            youtubeVideoUrl: content.youtubeVideoUrl || "",
+          });
+        }
+
+        // Fetch product data
+        const productResponse = await get("/products");
+        if (productResponse.success && productResponse.data.product) {
+          setProduct(productResponse.data.product);
+        }
+
+        setHasFetchedContent(true);
+      } catch (error) {
+        console.error("Failed to fetch website content or product:", error);
+        setHasFetchedContent(true);
+      }
+    };
+
+    fetchWebsiteContent();
+  }, [get, hasFetchedContent]);
+
+  // Extract YouTube video ID from URL
+  const getYouTubeVideoId = (url) => {
+    if (!url) return null;
+
+    const regex =
+      /(?:youtube\.com\/(?:[^\/]+\/.+\/|(?:v|e(?:mbed)?)\/|.*[?&]v=)|youtu\.be\/)([^"&?\/\s]{11})/;
+    const match = url.match(regex);
+    return match ? match[1] : null;
+  };
+
+  const videoId = getYouTubeVideoId(heroContent.youtubeVideoUrl);
+
+  // Handle image load errors
+  const handleImageError = (slideId) => {
+    setImageErrors((prev) => ({
+      ...prev,
+      [slideId]: true,
+    }));
+  };
+
+  // Generate product slides from product data or use defaults
+  const productSlides =
+    product?.images?.length > 0
+      ? product.images.map((image, index) => ({
+          id: index + 1,
+          image: image,
+          color: getSlideColor(index),
+        }))
+      : [
+          {
+            id: 1,
+            image: "/images/default-front.jpg",
+            color: "from-purple-500 to-pink-500",
+          },
+          {
+            id: 2,
+            image: "/images/default-side.jpg",
+            color: "from-blue-500 to-cyan-500",
+          },
+          {
+            id: 3,
+            image: "/images/default-back.jpg",
+            color: "from-green-500 to-emerald-500",
+          },
+          {
+            id: 4,
+            image: "/images/default-details.jpg",
+            color: "from-orange-500 to-red-500",
+          },
+        ];
+
+  // Helper function for slide colors
+  function getSlideColor(index) {
+    const colors = [
+      "from-purple-500 to-pink-500",
+      "from-blue-500 to-cyan-500",
+      "from-green-500 to-emerald-500",
+      "from-orange-500 to-red-500",
+      "from-indigo-500 to-purple-500",
+      "from-rose-500 to-red-500",
+    ];
+    return colors[index] || "from-purple-500 to-pink-500";
+  }
 
   useEffect(() => {
     if (isInView) {
@@ -61,69 +155,72 @@ const Hero = () => {
     }
   }, [isInView, controls]);
 
-  const nextImage = () => {
-    setCurrentImage((prev) => (prev + 1) % productImages.length);
+  // Auto slide
+  useEffect(() => {
+    const interval = setInterval(() => {
+      nextSlide();
+    }, 4000);
+    return () => clearInterval(interval);
+  }, [productSlides.length]);
+
+  const nextSlide = () => {
+    setDirection(1);
+    setCurrentSlide((prev) => (prev + 1) % productSlides.length);
   };
 
-  const prevImage = () => {
-    setCurrentImage(
-      (prev) => (prev - 1 + productImages.length) % productImages.length
+  const prevSlide = () => {
+    setDirection(-1);
+    setCurrentSlide(
+      (prev) => (prev - 1 + productSlides.length) % productSlides.length
     );
   };
 
-  // Auto slide
-  useEffect(() => {
-    const interval = setInterval(nextImage, 4000);
-    return () => clearInterval(interval);
-  }, []);
+  const goToSlide = (index) => {
+    setDirection(index > currentSlide ? 1 : -1);
+    setCurrentSlide(index);
+  };
+
+  const handleOrderSubmit = (e) => {
+    e.preventDefault();
+    setShowOrderModal(false);
+    setTimeout(() => {
+      setShowSuccessMessage(true);
+      setOrderForm({
+        name: "",
+        phone: "",
+        address: "",
+        size: "",
+        quantity: "1",
+      });
+    }, 300);
+  };
+
+  const closeSuccessMessage = () => {
+    setShowSuccessMessage(false);
+  };
+
+  const openVideoModal = () => {
+    setShowVideoModal(true);
+  };
+
+  const closeVideoModal = () => {
+    setShowVideoModal(false);
+  };
 
   const containerVariants = {
     hidden: { opacity: 0 },
     visible: {
       opacity: 1,
-      transition: {
-        staggerChildren: 0.2,
-        duration: 0.8,
-      },
+      transition: { staggerChildren: 0.15, duration: 0.6 },
     },
   };
 
   const itemVariants = {
-    hidden: { opacity: 0, y: 50 },
+    hidden: { opacity: 0, y: 30 },
     visible: {
       opacity: 1,
       y: 0,
-      transition: {
-        duration: 0.8,
-        ease: "easeOut",
-      },
-    },
-  };
-
-  const floatVariants = {
-    float: {
-      y: [-10, 10, -10],
-      transition: {
-        duration: 4,
-        repeat: Infinity,
-        ease: "easeInOut",
-      },
-    },
-  };
-
-  const glowVariants = {
-    initial: {
-      scale: 1,
-      opacity: 0.5,
-    },
-    animate: {
-      scale: [1, 1.2, 1],
-      opacity: [0.5, 0.8, 0.5],
-      transition: {
-        duration: 3,
-        repeat: Infinity,
-        ease: "easeInOut",
-      },
+      transition: { duration: 0.6, ease: "easeOut" },
     },
   };
 
@@ -131,481 +228,508 @@ const Hero = () => {
     enter: (direction) => ({
       x: direction > 0 ? 300 : -300,
       opacity: 0,
-      scale: 0.8,
+      scale: 0.9,
     }),
     center: {
-      zIndex: 1,
       x: 0,
       opacity: 1,
       scale: 1,
+      transition: {
+        duration: 0.5,
+        ease: "easeOut",
+      },
     },
     exit: (direction) => ({
-      zIndex: 0,
       x: direction < 0 ? 300 : -300,
       opacity: 0,
-      scale: 0.8,
+      scale: 0.9,
+      transition: {
+        duration: 0.5,
+        ease: "easeOut",
+      },
     }),
   };
 
+  const videoModalVariants = {
+    hidden: {
+      opacity: 0,
+      scale: 0.8,
+    },
+    visible: {
+      opacity: 1,
+      scale: 1,
+      transition: {
+        duration: 0.3,
+        ease: "easeOut",
+      },
+    },
+    exit: {
+      opacity: 0,
+      scale: 0.8,
+      transition: {
+        duration: 0.2,
+        ease: "easeIn",
+      },
+    },
+  };
+
+  // Function to split hero title into parts for styling
+  const renderHeroTitle = () => {
+    if (!heroContent.heroTitle) {
+      return (
+        <>
+          <span className="block">ঝিনুকের মধ্যে</span>
+          <span className="text-transparent bg-clip-text bg-gradient-to-r from-purple-600 to-pink-600">
+            মুক্তা
+          </span>
+          <span className="block">তেমন সুরক্ষিত</span>
+        </>
+      );
+    }
+
+    // Split the title by asterisks to identify gradient parts
+    const parts = heroContent.heroTitle.split("*");
+
+    if (parts.length === 1) {
+      // No asterisks found, return as is
+      return <span className="block">{heroContent.heroTitle}</span>;
+    }
+
+    return parts.map((part, index) => {
+      if (index % 2 === 0) {
+        // Regular text
+        return (
+          <span key={index} className="block">
+            {part}
+          </span>
+        );
+      } else {
+        // Gradient text (between asterisks)
+        return (
+          <span
+            key={index}
+            className="text-transparent bg-clip-text bg-gradient-to-r from-purple-600 to-pink-600"
+          >
+            {part}
+          </span>
+        );
+      }
+    });
+  };
+
   return (
-    <section className="relative min-h-screen flex py-10 items-center justify-center overflow-hidden bg-gradient-to-br from-purple-50 via-pink-50 to-blue-50">
-      {/* Animated Background Particles */}
-      <div className="absolute inset-0 overflow-hidden">
-        {[...Array(20)].map((_, i) => (
+    <>
+      <section className="relative min-h-screen py-10 flex items-center justify-center overflow-hidden bg-gradient-to-br from-purple-50 via-blue-50 to-pink-50">
+        {/* Background Elements */}
+        <div className="absolute inset-0 overflow-hidden">
           <motion.div
-            key={i}
-            className="absolute rounded-full bg-gradient-to-r from-purple-200 to-pink-200"
-            style={{
-              width: Math.random() * 100 + 50,
-              height: Math.random() * 100 + 50,
-              left: `${Math.random() * 100}%`,
-              top: `${Math.random() * 100}%`,
-            }}
+            className="absolute top-20 left-10 w-72 h-72 bg-purple-200 rounded-full blur-3xl opacity-40"
             animate={{
-              y: [0, -30, 0],
-              opacity: [0.3, 0.7, 0.3],
+              scale: [1, 1.1, 1],
+              opacity: [0.3, 0.5, 0.3],
             }}
-            transition={{
-              duration: Math.random() * 5 + 3,
-              repeat: Infinity,
-              ease: "easeInOut",
-              delay: Math.random() * 2,
-            }}
+            transition={{ duration: 4, repeat: Infinity }}
           />
-        ))}
-      </div>
+          <motion.div
+            className="absolute bottom-20 right-10 w-80 h-80 bg-blue-200 rounded-full blur-3xl opacity-40"
+            animate={{
+              scale: [1.1, 1, 1.1],
+              opacity: [0.4, 0.6, 0.4],
+            }}
+            transition={{ duration: 5, repeat: Infinity, delay: 1 }}
+          />
+        </div>
 
-      {/* Animated Gradient Orbs */}
-      <motion.div
-        className="absolute top-1/4 left-1/4 w-96 h-96 bg-gradient-to-r from-purple-400 to-pink-400 rounded-full blur-3xl opacity-20"
-        variants={glowVariants}
-        initial="initial"
-        animate="animate"
-      />
-      <motion.div
-        className="absolute bottom-1/4 right-1/4 w-80 h-80 bg-gradient-to-r from-green-400 to-blue-400 rounded-full blur-3xl opacity-20"
-        variants={glowVariants}
-        initial="initial"
-        animate="animate"
-        transition={{ delay: 1 }}
-      />
-
-      <div className="container mx-auto px-4 py-16 relative z-10">
-        <motion.div
-          ref={ref}
-          variants={containerVariants}
-          initial="hidden"
-          animate={controls}
-          className="grid lg:grid-cols-2 gap-12 items-center"
-        >
-          {/* Content */}
-          <div className="text-center lg:text-left">
-            <motion.div
-              variants={itemVariants}
-              className="inline-flex items-center space-x-2 bg-white/90 backdrop-blur-md rounded-full px-6 py-3 mb-8 shadow-2xl border border-white/20"
-            >
+        <div className="container mx-auto px-4 py-16 relative z-10">
+          <motion.div
+            ref={ref}
+            variants={containerVariants}
+            initial="hidden"
+            animate={controls}
+            className="grid lg:grid-cols-2 gap-12 items-center"
+          >
+            {/* Content */}
+            <div className="text-center lg:text-left">
               <motion.div
-                animate={{ rotate: 360 }}
-                transition={{ duration: 20, repeat: Infinity, ease: "linear" }}
+                variants={itemVariants}
+                className="inline-flex items-center space-x-2 bg-white/80 backdrop-blur-md rounded-full px-6 py-3 mb-8 shadow-lg"
               >
                 <FiStar className="text-yellow-500 text-xl" />
+                <span className="text-sm font-bold text-gray-800">
+                  ১০,০০০+ সন্তুষ্ট গ্রাহক • ৪.৯/৫ রেটিং
+                </span>
               </motion.div>
-              <span className="text-sm font-bold text-gray-800 bg-gradient-to-r from-purple-600 to-pink-600 bg-clip-text text-transparent">
-                ১০,০০০+ সন্তুষ্ট গ্রাহক • ৪.৯/৫ রেটিং
-              </span>
-            </motion.div>
 
-            <motion.h1
-              variants={itemVariants}
-              className="text-5xl lg:text-7xl font-black text-gray-900 leading-tight mb-8"
-            >
-              <span className="block">ঝিনুকের মধ্যে</span>
-              <span className="text-transparent bg-clip-text bg-gradient-to-r from-purple-600 via-pink-600 to-blue-600 animate-gradient-x">
-                মুক্তা
-              </span>
-              <span className="block">তেমন সুরক্ষিত</span>
-            </motion.h1>
-
-            <motion.p
-              variants={itemVariants}
-              className="text-2xl text-gray-700 mb-8 leading-relaxed font-medium"
-            >
-              <span className="font-black bg-gradient-to-r from-purple-700 to-pink-700 bg-clip-text text-transparent">
-                তেমনই আপনার পর্দাও
-              </span>{" "}
-              – Ronjit Super Cherry ফ্যাব্রিক দিয়ে তৈরি Damaham Sonnoti Burka
-            </motion.p>
-
-            {/* Enhanced Features Grid */}
-            <motion.div
-              variants={itemVariants}
-              className="grid grid-cols-2 gap-4 mb-12"
-            >
-              {[
-                {
-                  icon: FiShield,
-                  text: "পূর্ণ কভারেজ",
-                  color: "from-green-500 to-emerald-600",
-                },
-                {
-                  icon: FiHeart,
-                  text: "সুপার কমফোর্ট",
-                  color: "from-pink-500 to-rose-600",
-                },
-                {
-                  icon: FiPlay,
-                  text: "৩৬০° ভিডিও",
-                  color: "from-blue-500 to-cyan-600",
-                },
-                {
-                  icon: FiShoppingBag,
-                  text: "হিডেন পকেট",
-                  color: "from-purple-500 to-indigo-600",
-                },
-              ].map((feature, index) => (
-                <motion.div
-                  key={index}
-                  whileHover={{
-                    scale: 1.05,
-                    y: -5,
-                    transition: { duration: 0.2 },
-                  }}
-                  whileTap={{ scale: 0.95 }}
-                  className="flex items-center space-x-3 bg-white/80 backdrop-blur-sm rounded-2xl p-4 shadow-lg border border-white/20 hover:shadow-2xl transition-all duration-300"
-                >
-                  <div
-                    className={`w-12 h-12 bg-gradient-to-r ${feature.color} rounded-xl flex items-center justify-center shadow-lg`}
-                  >
-                    <feature.icon className="text-white text-lg" />
-                  </div>
-                  <span className="text-sm font-bold text-gray-800">
-                    {feature.text}
-                  </span>
-                </motion.div>
-              ))}
-            </motion.div>
-
-            {/* Enhanced CTA Buttons */}
-            <motion.div
-              variants={itemVariants}
-              className="flex flex-col sm:flex-row gap-6 justify-center lg:justify-start items-center"
-            >
-              <motion.button
-                whileHover={{
-                  scale: 1.05,
-                  boxShadow: "0 20px 40px rgba(5, 150, 105, 0.4)",
-                }}
-                whileTap={{ scale: 0.95 }}
-                className="bg-gradient-to-r from-green-600 to-emerald-600 text-white px-10 py-5 rounded-2xl font-black text-xl hover:shadow-2xl transition-all duration-300 flex items-center justify-center space-x-3 shadow-lg relative overflow-hidden group"
+              <motion.h1
+                variants={itemVariants}
+                className="text-4xl lg:text-6xl font-bold text-gray-900 leading-tight mb-6"
               >
-                <div className="absolute inset-0 bg-gradient-to-r from-white/20 to-transparent transform -skew-x-12 -translate-x-full group-hover:translate-x-full transition-transform duration-1000" />
-                <div className="w-8 h-8 bg-white rounded-full flex items-center justify-center">
-                  <span className="text-green-600 text-lg">✓</span>
-                </div>
-                <span>আমি এখনই অর্ডার করতে চাই</span>
-              </motion.button>
+                {renderHeroTitle()}
+              </motion.h1>
 
-              <motion.button
-                whileHover={{
-                  scale: 1.05,
-                  backgroundColor: "rgba(139, 92, 246, 0.1)",
-                }}
-                whileTap={{ scale: 0.95 }}
-                className="border-2 border-purple-600 text-purple-700 px-8 py-5 rounded-2xl font-bold text-lg hover:shadow-xl transition-all duration-300 flex items-center justify-center space-x-3 group"
+              <motion.p
+                variants={itemVariants}
+                className="text-xl text-gray-700 mb-8 leading-relaxed"
               >
-                <motion.div
-                  animate={{ scale: [1, 1.2, 1] }}
-                  transition={{ duration: 2, repeat: Infinity }}
-                  className="w-10 h-10 bg-purple-600 rounded-full flex items-center justify-center"
-                >
-                  <FiPlay className="text-white text-lg ml-1" />
-                </motion.div>
-                <span>ভিডিও ট্রেলার দেখুন</span>
-              </motion.button>
-            </motion.div>
+                {heroContent.heroSubtitle || (
+                  <>
+                    <span className="font-semibold text-purple-600">
+                      তেমনই আপনার পর্দাও
+                    </span>{" "}
+                    – Ronjit Super Cherry ফ্যাব্রিক দিয়ে তৈরি Damamah Sonnoti
+                    Burka
+                  </>
+                )}
+              </motion.p>
 
-            {/* Enhanced Trust Badges */}
-            <motion.div
-              variants={itemVariants}
-              className="flex flex-wrap justify-center lg:justify-start gap-8 mt-12"
-            >
-              {[
-                { icon: "🚚", text: "১-৩ দিনে ডেলিভারি", sub: "দ্রুত সার্ভিস" },
-                {
-                  icon: "💰",
-                  text: "ক্যাশ অন ডেলিভারি",
-                  sub: "নিরাপদ পেমেন্ট",
-                },
-                { icon: "↩️", text: "৭ দিন রিটার্ন", sub: "নো রিস্ক" },
-                { icon: "🛡️", text: "১০০% অথেনটিক", sub: "গ্যারান্টিড" },
-              ].map((badge, index) => (
-                <motion.div
-                  key={index}
-                  whileHover={{ y: -2 }}
-                  className="flex items-center space-x-3 bg-white/90 backdrop-blur-sm rounded-2xl px-4 py-3 shadow-lg border border-white/20"
-                >
-                  <span className="text-2xl">{badge.icon}</span>
-                  <div className="text-left">
-                    <div className="font-bold text-gray-800 text-sm">
-                      {badge.text}
-                    </div>
-                    <div className="text-xs text-gray-600">{badge.sub}</div>
-                  </div>
-                </motion.div>
-              ))}
-            </motion.div>
-          </div>
-
-          {/* Enhanced Product Display with Image Slider */}
-          <motion.div
-            variants={floatVariants}
-            animate="float"
-            className="relative"
-          >
-            {/* Main Product Card with Image Slider */}
-            <motion.div
-              whileHover={{
-                rotateY: 5,
-                transition: { duration: 0.5 },
-              }}
-              className="bg-white rounded-3xl shadow-2xl p-6 transform perspective-1000 hover:shadow-3xl transition-all duration-500 border border-white/20 backdrop-blur-sm"
-            >
-              <div className="bg-gradient-to-br from-purple-50 via-pink-50 to-blue-50 rounded-2xl p-4 aspect-square flex items-center justify-center relative overflow-hidden">
-                {/* Image Slider Container */}
-                <div className="relative w-full h-full rounded-xl overflow-hidden">
+              {/* Features */}
+              <motion.div
+                variants={itemVariants}
+                className="grid grid-cols-2 gap-4 mb-8"
+              >
+                {[
+                  { icon: FiShield, text: "পূর্ণ কভারেজ" },
+                  { icon: FiHeart, text: "সুপার কমফোর্ট" },
+                  { icon: FiPlay, text: "৩৬০° ভিডিও" },
+                  { icon: FiShoppingBag, text: "হিডেন পকেট" },
+                ].map((feature, index) => (
                   <motion.div
-                    key={currentImage}
-                    custom={1}
-                    variants={slideVariants}
-                    initial="enter"
-                    animate="center"
-                    exit="exit"
-                    transition={{
-                      x: { type: "spring", stiffness: 300, damping: 30 },
-                      opacity: { duration: 0.5 },
-                      scale: { duration: 0.5 },
-                    }}
-                    className={`absolute inset-0 bg-gradient-to-br ${productImages[currentImage].gradient} rounded-xl flex flex-col items-center justify-center text-white p-6`}
+                    key={index}
+                    whileHover={{ scale: 1.02 }}
+                    className="flex items-center space-x-3 bg-white/70 backdrop-blur-sm rounded-xl p-3 shadow-md"
                   >
-                    {/* Animated Product Silhouette */}
-                    <motion.div
-                      initial={{ scale: 0.9, opacity: 0 }}
-                      animate={{ scale: 1, opacity: 1 }}
-                      transition={{ delay: 0.3 }}
-                      className="text-center relative w-full h-full flex flex-col items-center justify-center"
-                    >
-                      <div className="w-32 h-40 bg-white/20 rounded-2xl mx-auto mb-4 shadow-2xl backdrop-blur-sm border border-white/30 relative">
-                        {/* Hidden Pocket Indicator */}
-                        <motion.div
-                          animate={{ x: [0, 5, 0] }}
-                          transition={{ duration: 3, repeat: Infinity }}
-                          className="absolute right-2 top-1/2 transform -translate-y-1/2"
-                        >
-                          <div className="w-6 h-8 bg-yellow-400 rounded-lg border-2 border-white shadow-xl flex items-center justify-center">
-                            <FiShoppingBag className="text-white text-xs" />
-                          </div>
-                        </motion.div>
-
-                        {/* Dynamic Product Details Based on Image */}
-                        {currentImage === 0 && (
-                          <motion.div
-                            initial={{ opacity: 0 }}
-                            animate={{ opacity: 1 }}
-                            className="absolute left-2 top-4 w-3 h-16 bg-white/30 rounded-full"
-                          />
-                        )}
-                        {currentImage === 1 && (
-                          <motion.div
-                            initial={{ opacity: 0 }}
-                            animate={{ opacity: 1 }}
-                            className="absolute left-4 top-8 w-2 h-12 bg-white/30 rounded-full rotate-45"
-                          />
-                        )}
-                        {currentImage === 3 && (
-                          <motion.div
-                            initial={{ opacity: 0 }}
-                            animate={{ opacity: 1 }}
-                            className="absolute left-8 bottom-4 w-8 h-3 bg-white/30 rounded-full"
-                          />
-                        )}
-                      </div>
-
-                      <motion.div
-                        initial={{ y: 20, opacity: 0 }}
-                        animate={{ y: 0, opacity: 1 }}
-                        transition={{ delay: 0.5 }}
-                        className="text-center"
-                      >
-                        <h3 className="text-lg font-black mb-2">
-                          {productImages[currentImage].title}
-                        </h3>
-                        <p className="text-sm font-medium opacity-90">
-                          {productImages[currentImage].description}
-                        </p>
-                      </motion.div>
-                    </motion.div>
+                    <div className="w-10 h-10 bg-gradient-to-r from-purple-500 to-pink-500 rounded-lg flex items-center justify-center">
+                      <feature.icon className="text-white text-sm" />
+                    </div>
+                    <span className="text-sm font-medium text-gray-800">
+                      {feature.text}
+                    </span>
                   </motion.div>
+                ))}
+              </motion.div>
 
-                  {/* Navigation Arrows */}
-                  <button
-                    onClick={prevImage}
-                    className="absolute left-2 top-1/2 transform -translate-y-1/2 w-8 h-8 bg-white/90 backdrop-blur-sm rounded-full flex items-center justify-center shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-110 border border-white/20 z-10"
+              {/* CTA Buttons */}
+              <motion.div
+                variants={itemVariants}
+                className="flex flex-col sm:flex-row gap-4 justify-center lg:justify-start"
+              >
+                <motion.button
+                  onClick={() => setShowOrderModal(true)}
+                  whileHover={{ scale: 1.02 }}
+                  whileTap={{ scale: 0.98 }}
+                  className="bg-gradient-to-r from-purple-600 to-pink-600 text-white px-8 py-4 rounded-xl font-semibold shadow-lg hover:shadow-xl transition-all duration-300"
+                >
+                  এখনই অর্ডার করুন
+                </motion.button>
+
+                <motion.button
+                  onClick={openVideoModal}
+                  disabled={!videoId}
+                  whileHover={{ scale: videoId ? 1.02 : 1 }}
+                  whileTap={{ scale: videoId ? 0.98 : 1 }}
+                  className={`border-2 px-6 py-4 rounded-xl font-semibold transition-all duration-300 flex items-center justify-center space-x-2 ${
+                    videoId
+                      ? "border-purple-600 text-purple-700 hover:bg-purple-50"
+                      : "border-gray-400 text-gray-500 cursor-not-allowed"
+                  }`}
+                >
+                  <FiPlay className="text-lg" />
+                  <span>ভিডিও দেখুন</span>
+                </motion.button>
+              </motion.div>
+
+              {/* Trust Badges */}
+              <motion.div
+                variants={itemVariants}
+                className="flex flex-wrap justify-center lg:justify-start gap-6 mt-8"
+              >
+                {[
+                  { icon: "🚚", text: "দ্রুত ডেলিভারি" },
+                  { icon: "💰", text: "ক্যাশ অন ডেলিভারি" },
+                  { icon: "↩️", text: "৭ দিন রিটার্ন" },
+                ].map((badge, index) => (
+                  <motion.div
+                    key={index}
+                    whileHover={{ y: -2 }}
+                    className="flex items-center space-x-2 bg-white/80 backdrop-blur-sm rounded-lg px-3 py-2 shadow-sm"
                   >
-                    <FiChevronLeft className="text-gray-800 text-lg" />
-                  </button>
+                    <span className="text-lg">{badge.icon}</span>
+                    <span className="text-sm font-medium text-gray-700">
+                      {badge.text}
+                    </span>
+                  </motion.div>
+                ))}
+              </motion.div>
+            </div>
+
+            {/* Enhanced Image Slider - Bigger Version with Actual Product Images */}
+            <motion.div variants={itemVariants} className="relative">
+              <motion.div
+                animate={{
+                  y: [0, -15, 0],
+                }}
+                transition={{
+                  duration: 4,
+                  repeat: Infinity,
+                  ease: "easeInOut",
+                }}
+                className="relative bg-white rounded-3xl shadow-2xl p-8 max-w-2xl w-full mx-auto"
+              >
+                {/* Main Slider Container - Bigger */}
+                <div className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-purple-100 via-pink-100 to-blue-100 aspect-[4/5] min-h-[600px]">
+                  {/* Slides */}
+                  {productSlides.map((slide, index) => (
+                    <motion.div
+                      key={slide.id}
+                      custom={direction}
+                      variants={slideVariants}
+                      initial="enter"
+                      animate={index === currentSlide ? "center" : "exit"}
+                      className="absolute inset-0 flex items-center justify-center"
+                    >
+                      {/* Product Image */}
+                      <div className="relative w-full h-full flex items-center justify-center p-4">
+                        <motion.div
+                          initial={{ scale: 0.9, opacity: 0 }}
+                          animate={{ scale: 1, opacity: 1 }}
+                          transition={{ delay: 0.2, duration: 0.5 }}
+                          className="relative w-full h-full flex items-center justify-center rounded-2xl overflow-hidden"
+                        >
+                          {/* Actual Product Image or Fallback Icon */}
+                          {!imageErrors[slide.id] ? (
+                            <img
+                              src={slide.image}
+                              alt={`Product view ${slide.id}`}
+                              className="w-full h-full object-cover"
+                              onError={() => handleImageError(slide.id)}
+                            />
+                          ) : (
+                            <div
+                              className={`w-full h-full flex items-center justify-center bg-gradient-to-br ${slide.color} rounded-2xl`}
+                            >
+                              <FiImage className="text-white text-6xl opacity-70" />
+                            </div>
+                          )}
+
+                          {/* Image Overlay with Gradient */}
+                          <div
+                            className={`absolute inset-0 bg-gradient-to-br ${slide.color} opacity-10`}
+                          ></div>
+
+                          {/* Shimmer Effect */}
+                          <motion.div
+                            className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent transform -skew-x-12"
+                            animate={{
+                              x: [-200, 400],
+                            }}
+                            transition={{
+                              duration: 3,
+                              repeat: Infinity,
+                              delay: Math.random() * 2,
+                            }}
+                          />
+                        </motion.div>
+                      </div>
+                    </motion.div>
+                  ))}
+
+                  {/* Bigger Navigation Arrows */}
                   <button
-                    onClick={nextImage}
-                    className="absolute right-2 top-1/2 transform -translate-y-1/2 w-8 h-8 bg-white/90 backdrop-blur-sm rounded-full flex items-center justify-center shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-110 border border-white/20 z-10"
+                    onClick={prevSlide}
+                    className="absolute left-4 top-1/2 transform -translate-y-1/2 w-14 h-14 bg-white/90 backdrop-blur-sm rounded-2xl flex items-center justify-center shadow-2xl hover:shadow-3xl transition-all duration-300 hover:scale-110 z-10 border border-white/20"
                   >
-                    <FiChevronRight className="text-gray-800 text-lg" />
+                    <FiChevronLeft className="text-gray-800 text-2xl" />
                   </button>
 
-                  {/* Slide Indicators */}
-                  <div className="absolute bottom-3 left-1/2 transform -translate-x-1/2 flex space-x-1 z-10">
-                    {productImages.map((_, index) => (
+                  <button
+                    onClick={nextSlide}
+                    className="absolute right-4 top-1/2 transform -translate-y-1/2 w-14 h-14 bg-white/90 backdrop-blur-sm rounded-2xl flex items-center justify-center shadow-2xl hover:shadow-3xl transition-all duration-300 hover:scale-110 z-10 border border-white/20"
+                  >
+                    <FiChevronRight className="text-gray-800 text-2xl" />
+                  </button>
+
+                  {/* Bigger Slide Indicators */}
+                  <div className="absolute bottom-6 left-1/2 transform -translate-x-1/2 flex space-x-3 z-10">
+                    {productSlides.map((_, index) => (
                       <button
                         key={index}
-                        onClick={() => setCurrentImage(index)}
-                        className={`w-2 h-2 rounded-full transition-all duration-300 ${
-                          index === currentImage
-                            ? "bg-white scale-125"
+                        onClick={() => goToSlide(index)}
+                        className={`w-4 h-4 rounded-full transition-all duration-300 ${
+                          index === currentSlide
+                            ? "bg-white scale-125 shadow-lg"
                             : "bg-white/50 hover:bg-white/80"
                         }`}
                       />
                     ))}
                   </div>
 
-                  {/* Image Counter */}
-                  <div className="absolute top-3 right-3 bg-black/30 backdrop-blur-sm rounded-full px-2 py-1">
-                    <span className="text-white text-xs font-bold">
-                      {currentImage + 1} / {productImages.length}
+                  {/* Bigger Slide Counter */}
+                  <div className="absolute top-6 right-6 bg-black/30 backdrop-blur-sm rounded-2xl px-4 py-2">
+                    <span className="text-white text-lg font-bold">
+                      {currentSlide + 1} / {productSlides.length}
                     </span>
                   </div>
                 </div>
-              </div>
 
-              {/* Product Info Below Slider */}
-              <motion.div
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: 0.8 }}
-                className="text-center mt-4"
-              >
-                <motion.p
-                  animate={{ opacity: [0.7, 1, 0.7] }}
-                  transition={{ duration: 2, repeat: Infinity }}
-                  className="text-gray-700 font-semibold text-lg mb-2"
+                {/* Progress Bar */}
+                <motion.div
+                  className="absolute bottom-0 left-0 h-2 bg-gradient-to-r from-purple-500 to-pink-500 rounded-full"
+                  initial={{ width: "0%" }}
+                  animate={{ width: "100%" }}
+                  transition={{ duration: 4, repeat: Infinity }}
+                  key={currentSlide}
+                />
+              </motion.div>
+
+              {/* Bigger Discount Badge */}
+              {product?.discount > 0 && (
+                <motion.div
+                  animate={{
+                    scale: [1, 1.1, 1],
+                    rotate: [0, -5, 0],
+                  }}
+                  transition={{
+                    duration: 3,
+                    repeat: Infinity,
+                  }}
+                  className="absolute -top-6 -right-6 bg-gradient-to-r from-red-500 to-pink-500 text-white rounded-2xl w-20 h-20 flex items-center justify-center shadow-2xl z-20 border-4 border-white"
                 >
-                  Premium 3D Preview
-                </motion.p>
-                <div className="flex justify-center space-x-2">
-                  {productImages.map((image, index) => (
-                    <div
-                      key={image.id}
-                      className={`w-2 h-2 rounded-full transition-all duration-300 ${
-                        currentImage === index
-                          ? `bg-${image.color}-500`
-                          : "bg-gray-300"
-                      }`}
-                    />
-                  ))}
+                  <div className="text-center">
+                    <span className="font-black text-xl block leading-tight">
+                      -{product.discount}%
+                    </span>
+                    <span className="text-xs font-bold block">OFF</span>
+                  </div>
+                </motion.div>
+              )}
+
+              {/* New Collection Badge */}
+              <motion.div
+                animate={{
+                  y: [0, -10, 0],
+                  scale: [1, 1.05, 1],
+                }}
+                transition={{
+                  duration: 4,
+                  repeat: Infinity,
+                  delay: 1,
+                }}
+                className="absolute -bottom-6 -left-6 bg-gradient-to-r from-green-500 to-emerald-600 text-white rounded-2xl w-24 h-24 flex items-center justify-center shadow-2xl border-4 border-white"
+              >
+                <div className="text-center">
+                  <span className="text-sm font-black block leading-tight">
+                    নতুন
+                  </span>
+                  <span className="text-sm font-black block leading-tight">
+                    কালেকশন
+                  </span>
+                </div>
+              </motion.div>
+
+              <motion.div
+                animate={{
+                  y: [0, 20, 0],
+                  opacity: [0.4, 0.7, 0.4],
+                }}
+                transition={{
+                  duration: 5,
+                  repeat: Infinity,
+                  delay: 2,
+                }}
+                className="absolute -top-4 -left-8 w-6 h-6 bg-pink-400 rounded-full blur-sm"
+              />
+              <motion.div
+                animate={{
+                  y: [0, -15, 0],
+                  opacity: [0.3, 0.6, 0.3],
+                }}
+                transition={{
+                  duration: 3,
+                  repeat: Infinity,
+                  delay: 3,
+                }}
+                className="absolute -top-8 -right-4 w-7 h-7 bg-blue-400 rounded-full blur-sm"
+              />
+            </motion.div>
+          </motion.div>
+        </div>
+      </section>
+
+      {/* Order Modal */}
+      <OrderModal
+        showOrderModal={showOrderModal}
+        setShowOrderModal={setShowOrderModal}
+        orderForm={orderForm}
+        setOrderForm={setOrderForm}
+        handleOrderSubmit={handleOrderSubmit}
+        sizes={sizes}
+        product={product}
+      />
+
+      {/* Success Message */}
+      <SuccessMessage
+        showSuccessMessage={showSuccessMessage}
+        closeSuccessMessage={closeSuccessMessage}
+        orderForm={orderForm}
+        setShowOrderModal={setShowOrderModal}
+        product={product}
+      />
+
+      {/* Video Modal */}
+      <AnimatePresence>
+        {showVideoModal && videoId && (
+          <>
+            {/* Backdrop */}
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              onClick={closeVideoModal}
+              className="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center p-4"
+            >
+              {/* Modal Content */}
+              <motion.div
+                variants={videoModalVariants}
+                initial="hidden"
+                animate="visible"
+                exit="exit"
+                className="relative bg-white rounded-3xl shadow-2xl max-w-4xl w-full max-h-[90vh] overflow-hidden"
+                onClick={(e) => e.stopPropagation()}
+              >
+                {/* Close Button */}
+                <button
+                  onClick={closeVideoModal}
+                  className="absolute top-4 right-4 w-12 h-12 bg-white/90 backdrop-blur-sm rounded-2xl flex items-center justify-center shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-110 z-10 border border-white/20"
+                >
+                  <FiX className="text-gray-800 text-xl" />
+                </button>
+
+                {/* YouTube Video */}
+                <div className="relative pt-[56.25%] h-0 bg-black">
+                  <iframe
+                    src={`https://www.youtube.com/embed/${videoId}?autoplay=1&rel=0`}
+                    title="Product Video"
+                    className="absolute top-0 left-0 w-full h-full"
+                    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                    allowFullScreen
+                  />
+                </div>
+
+                {/* Video Info */}
+                <div className="p-6 bg-gradient-to-r from-purple-600 to-pink-600">
+                  <h3 className="text-xl font-bold text-white text-center">
+                    {product?.name || "Damaham Sonnoti Burka"} ভিডিও
+                  </h3>
+                  <p className="text-white/80 text-center mt-2">
+                    আমাদের প্রিমিয়াম কোয়ালিটি বারকা সম্পর্কে বিস্তারিত জানুন
+                  </p>
                 </div>
               </motion.div>
             </motion.div>
-
-            {/* Fixed 20% Off Badge */}
-            <motion.div
-              animate={{
-                y: [-15, 15, -15],
-                scale: [1, 1.1, 1],
-              }}
-              transition={{
-                duration: 3,
-                repeat: Infinity,
-                ease: "easeInOut",
-              }}
-              className="absolute -top-4 -right-4 bg-gradient-to-r from-yellow-400 to-orange-500 text-white rounded-2xl w-16 h-16 flex items-center justify-center shadow-2xl border-4 border-white"
-            >
-              <div className="text-center">
-                <span className="font-black text-sm block leading-tight">
-                  -২০%
-                </span>
-                <span className="text-[8px] font-bold block">OFF</span>
-              </div>
-            </motion.div>
-
-            {/* New Collection Badge */}
-            <motion.div
-              animate={{
-                y: [15, -15, 15],
-                scale: [1, 1.05, 1],
-              }}
-              transition={{
-                duration: 4,
-                repeat: Infinity,
-                ease: "easeInOut",
-                delay: 1,
-              }}
-              className="absolute -bottom-4 -left-4 bg-gradient-to-r from-green-500 to-emerald-600 text-white rounded-2xl w-20 h-20 flex items-center justify-center shadow-2xl border-4 border-white"
-            >
-              <div className="text-center">
-                <span className="text-[10px] font-black block leading-tight">
-                  নতুন
-                </span>
-                <span className="text-[10px] font-black block leading-tight">
-                  কালেকশন
-                </span>
-                <motion.div
-                  animate={{ scale: [1, 1.2, 1] }}
-                  transition={{ duration: 2, repeat: Infinity, delay: 0.5 }}
-                  className="w-1.5 h-1.5 bg-white rounded-full mx-auto mt-1"
-                />
-              </div>
-            </motion.div>
-
-            {/* Floating Particles Around Product */}
-            {[...Array(6)].map((_, i) => (
-              <motion.div
-                key={i}
-                className={`absolute w-3 h-3 bg-gradient-to-r from-purple-400 to-pink-400 rounded-full ${
-                  i % 2 === 0 ? "animate-pulse" : ""
-                }`}
-                style={{
-                  top: `${20 + i * 12}%`,
-                  left: i % 2 === 0 ? "-8%" : "108%",
-                }}
-                animate={{
-                  y: [0, -20, 0],
-                  opacity: [0.3, 0.8, 0.3],
-                  scale: [1, 1.3, 1],
-                }}
-                transition={{
-                  duration: Math.random() * 3 + 2,
-                  repeat: Infinity,
-                  ease: "easeInOut",
-                  delay: Math.random() * 2,
-                }}
-              />
-            ))}
-          </motion.div>
-        </motion.div>
-      </div>
-
-      {/* Scroll Indicator */}
-      <motion.div
-        animate={{ y: [0, 10, 0] }}
-        transition={{ duration: 2, repeat: Infinity }}
-        className="absolute bottom-8 left-1/2 transform -translate-x-1/2"
-      >
-        <div className="w-6 h-10 border-2 border-gray-400 rounded-full flex justify-center">
-          <motion.div
-            animate={{ y: [0, 12, 0] }}
-            transition={{ duration: 1.5, repeat: Infinity }}
-            className="w-1 h-3 bg-gray-400 rounded-full mt-2"
-          />
-        </div>
-      </motion.div>
-    </section>
+          </>
+        )}
+      </AnimatePresence>
+    </>
   );
 };
 

@@ -1,8 +1,21 @@
 import React, { useEffect, useState } from "react";
 import { FiWind, FiHeart, FiUsers, FiGift, FiAward } from "react-icons/fi";
+import OrderModal from "./OrderModal";
+import SuccessMessage from "./SuccessMesage";
 
 const Benefits = () => {
   const [isClicked, setIsClicked] = useState(false);
+  const [showOrderModal, setShowOrderModal] = useState(false);
+  const [showSuccessMessage, setShowSuccessMessage] = useState(false);
+  const [orderForm, setOrderForm] = useState({
+    name: "",
+    phone: "",
+    address: "",
+    size: "",
+    quantity: "1",
+  });
+
+  const sizes = ["৪৮", "৫০", "৫২", "৫৪", "৫৬", "৫৮"];
 
   const benefits = [
     {
@@ -92,6 +105,31 @@ const Benefits = () => {
     return () => observer.disconnect();
   }, []);
 
+  const handleOrderSubmit = (e) => {
+    e.preventDefault();
+
+    // Simulate order processing
+    setShowOrderModal(false);
+
+    // Show success message after a small delay
+    setTimeout(() => {
+      setShowSuccessMessage(true);
+
+      // Reset form
+      setOrderForm({
+        name: "",
+        phone: "",
+        address: "",
+        size: "",
+        quantity: "1",
+      });
+    }, 300);
+  };
+
+  const closeSuccessMessage = () => {
+    setShowSuccessMessage(false);
+  };
+
   const handleOrderClick = () => {
     setIsClicked(true);
 
@@ -116,15 +154,9 @@ const Benefits = () => {
       }, 600);
     }
 
-    // Scroll to order section after animation
+    // Open order modal instead of scrolling
     setTimeout(() => {
-      const orderSection = document.getElementById("order");
-      if (orderSection) {
-        orderSection.scrollIntoView({
-          behavior: "smooth",
-          block: "start",
-        });
-      }
+      setShowOrderModal(true);
     }, 300);
 
     // Reset click state
@@ -132,193 +164,213 @@ const Benefits = () => {
   };
 
   return (
-    <section id="benefits" className="py-20 bg-white overflow-hidden">
-      <div className="container mx-auto px-4">
-        <div className="text-center mb-16">
-          <h2 className="section-title text-4xl font-bold text-gray-900 mb-4">
-            কেন{" "}
-            <span className="text-transparent bg-clip-text bg-gradient-to-r from-green-600 to-blue-600">
-              Damaham Sonnoti Burka
-            </span>{" "}
-            আপনার সেরা পছন্দ?
-          </h2>
-          <p className="section-subtitle text-xl text-gray-600 max-w-3xl mx-auto">
-            শুধু একটি বোরকা নয়, এটি আপনার জীবনযাপনের অংশ হয়ে উঠবে
-          </p>
-        </div>
-
-        <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-8 mb-12">
-          {benefits.map((benefit, index) => (
-            <div
-              key={index}
-              className="benefit-card group bg-gradient-to-br from-gray-50 to-white rounded-2xl p-6 hover:shadow-2xl transition-all duration-500 transform hover:-translate-y-2 border border-gray-100 relative overflow-hidden cursor-pointer"
-              style={{ transitionDelay: `${index * 100}ms` }}
-            >
-              {/* Background Gradient Effect */}
-              <div
-                className={`absolute top-0 right-0 w-32 h-32 bg-gradient-to-br ${benefit.gradient} rounded-full filter blur-xl opacity-10 group-hover:opacity-20 transition-all duration-500 group-hover:scale-150`}
-              ></div>
-
-              {/* Hover Pulse Effect */}
-              <div
-                className={`absolute inset-0 bg-gradient-to-br ${benefit.gradient} opacity-0 group-hover:opacity-5 transition-opacity duration-500 rounded-2xl`}
-              ></div>
-
-              <div
-                className={`w-16 h-16 bg-gradient-to-r ${benefit.gradient} rounded-2xl flex items-center justify-center mb-4 relative z-10 group-hover:scale-110 transition-all duration-300 shadow-lg group-hover:shadow-xl`}
-              >
-                <benefit.icon className="text-white text-2xl group-hover:scale-110 transition-transform duration-300" />
-              </div>
-
-              <h3 className="text-xl font-bold text-gray-900 mb-3 relative z-10 group-hover:text-gray-800 transition-colors duration-300">
-                {benefit.title}
-              </h3>
-              <p className="text-gray-600 leading-relaxed relative z-10 group-hover:text-gray-700 transition-colors duration-300">
-                {benefit.description}
-              </p>
-
-              {/* Hover Effect Line */}
-              <div
-                className={`absolute bottom-0 left-0 w-0 h-1 bg-gradient-to-r ${benefit.gradient} group-hover:w-full transition-all duration-500`}
-              ></div>
-
-              {/* Floating Animation on Hover */}
-              <div className="absolute -bottom-2 -right-2 w-6 h-6 bg-gradient-to-r from-transparent to-white opacity-0 group-hover:opacity-100 rounded-full blur-sm transition-all duration-700 group-hover:animate-float"></div>
-            </div>
-          ))}
-        </div>
-
-        {/* Special Offer Banner */}
-        <div className="special-offer bg-gradient-to-r from-green-600 to-emerald-700 rounded-3xl p-8 text-center text-white relative overflow-hidden">
-          {/* Animated Background Elements */}
-          <div className="absolute top-0 left-0 w-full h-full opacity-10">
-            <div className="absolute top-4 left-10 w-20 h-20 bg-white rounded-full animate-pulse-slow"></div>
-            <div className="absolute bottom-4 right-10 w-16 h-16 bg-white rounded-full animate-bounce-slow"></div>
-            <div className="absolute top-1/2 left-1/4 w-12 h-12 bg-white rounded-full animate-ping-slow"></div>
+    <>
+      <section id="benefits" className="py-20 bg-white overflow-hidden">
+        <div className="container mx-auto px-4">
+          <div className="text-center mb-16">
+            <h2 className="section-title text-4xl font-bold text-gray-900 mb-4">
+              কেন{" "}
+              <span className="text-transparent bg-clip-text bg-gradient-to-r from-green-600 to-blue-600">
+                Damaham Sonnoti Burka
+              </span>{" "}
+              আপনার সেরা পছন্দ?
+            </h2>
+            <p className="section-subtitle text-xl text-gray-600 max-w-3xl mx-auto">
+              শুধু একটি বোরকা নয়, এটি আপনার জীবনযাপনের অংশ হয়ে উঠবে
+            </p>
           </div>
 
-          {/* Floating Particles */}
-          <div className="absolute inset-0 overflow-hidden">
-            {[...Array(5)].map((_, i) => (
-              <div
-                key={i}
-                className="absolute w-2 h-2 bg-white rounded-full opacity-20 animate-float"
-                style={{
-                  left: `${Math.random() * 100}%`,
-                  animationDelay: `${i * 2}s`,
-                  animationDuration: `${3 + i * 2}s`,
-                }}
-              ></div>
-            ))}
-          </div>
-
-          <h3 className="text-2xl font-bold mb-4 relative z-10 animate-pulse">
-            🎁 বিশেষ অফার: আজই অর্ডার করুন এবং পেয়ে যান
-          </h3>
-
-          <div className="grid md:grid-cols-3 gap-6 mb-6 relative z-10">
-            {[
-              "🚚 ফ্রি হোম ডেলিভারি",
-              "💰 ক্যাশ অন ডেলিভারি",
-              "↩️ ৭ দিন রিটার্ন পলিসি",
-            ].map((offer, index) => (
+          <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-8 mb-12">
+            {benefits.map((benefit, index) => (
               <div
                 key={index}
-                className="offer-item bg-white/20 backdrop-blur-sm rounded-xl p-4 transform hover:scale-105 transition-all duration-300 hover:bg-white/30 cursor-pointer"
+                className="benefit-card group bg-gradient-to-br from-gray-50 to-white rounded-2xl p-6 hover:shadow-2xl transition-all duration-500 transform hover:-translate-y-2 border border-gray-100 relative overflow-hidden cursor-pointer"
+                style={{ transitionDelay: `${index * 100}ms` }}
               >
-                <p className="font-semibold">{offer}</p>
+                {/* Background Gradient Effect */}
+                <div
+                  className={`absolute top-0 right-0 w-32 h-32 bg-gradient-to-br ${benefit.gradient} rounded-full filter blur-xl opacity-10 group-hover:opacity-20 transition-all duration-500 group-hover:scale-150`}
+                ></div>
+
+                {/* Hover Pulse Effect */}
+                <div
+                  className={`absolute inset-0 bg-gradient-to-br ${benefit.gradient} opacity-0 group-hover:opacity-5 transition-opacity duration-500 rounded-2xl`}
+                ></div>
+
+                <div
+                  className={`w-16 h-16 bg-gradient-to-r ${benefit.gradient} rounded-2xl flex items-center justify-center mb-4 relative z-10 group-hover:scale-110 transition-all duration-300 shadow-lg group-hover:shadow-xl`}
+                >
+                  <benefit.icon className="text-white text-2xl group-hover:scale-110 transition-transform duration-300" />
+                </div>
+
+                <h3 className="text-xl font-bold text-gray-900 mb-3 relative z-10 group-hover:text-gray-800 transition-colors duration-300">
+                  {benefit.title}
+                </h3>
+                <p className="text-gray-600 leading-relaxed relative z-10 group-hover:text-gray-700 transition-colors duration-300">
+                  {benefit.description}
+                </p>
+
+                {/* Hover Effect Line */}
+                <div
+                  className={`absolute bottom-0 left-0 w-0 h-1 bg-gradient-to-r ${benefit.gradient} group-hover:w-full transition-all duration-500`}
+                ></div>
+
+                {/* Floating Animation on Hover */}
+                <div className="absolute -bottom-2 -right-2 w-6 h-6 bg-gradient-to-r from-transparent to-white opacity-0 group-hover:opacity-100 rounded-full blur-sm transition-all duration-700 group-hover:animate-float"></div>
               </div>
             ))}
           </div>
 
-          <button
-            onClick={handleOrderClick}
-            className={`order-button relative bg-white text-green-700 px-8 py-4 rounded-full font-bold text-lg hover:shadow-2xl transition-all duration-300 transform ${
-              isClicked ? "scale-95" : "hover:scale-105"
-            } overflow-hidden`}
-          >
-            🎁 আমি আজই অর্ডার করতে চাই
-            {/* Ripple effect container */}
-            <style jsx>{`
-              .ripple-effect {
-                position: absolute;
-                border-radius: 50%;
-                background: rgba(255, 255, 255, 0.6);
-                transform: scale(0);
-                animation: ripple 0.6s linear;
-              }
+          {/* Special Offer Banner */}
+          <div className="special-offer bg-gradient-to-r from-green-600 to-emerald-700 rounded-3xl p-8 text-center text-white relative overflow-hidden">
+            {/* Animated Background Elements */}
+            <div className="absolute top-0 left-0 w-full h-full opacity-10">
+              <div className="absolute top-4 left-10 w-20 h-20 bg-white rounded-full animate-pulse-slow"></div>
+              <div className="absolute bottom-4 right-10 w-16 h-16 bg-white rounded-full animate-bounce-slow"></div>
+              <div className="absolute top-1/2 left-1/4 w-12 h-12 bg-white rounded-full animate-ping-slow"></div>
+            </div>
 
-              @keyframes ripple {
-                to {
-                  transform: scale(4);
-                  opacity: 0;
-                }
-              }
+            {/* Floating Particles */}
+            <div className="absolute inset-0 overflow-hidden">
+              {[...Array(5)].map((_, i) => (
+                <div
+                  key={i}
+                  className="absolute w-2 h-2 bg-white rounded-full opacity-20 animate-float"
+                  style={{
+                    left: `${Math.random() * 100}%`,
+                    animationDelay: `${i * 2}s`,
+                    animationDuration: `${3 + i * 2}s`,
+                  }}
+                ></div>
+              ))}
+            </div>
 
-              @keyframes float {
-                0%,
-                100% {
-                  transform: translateY(0px) rotate(0deg);
-                }
-                50% {
-                  transform: translateY(-10px) rotate(180deg);
-                }
-              }
+            <h3 className="text-2xl font-bold mb-4 relative z-10 animate-pulse">
+              🎁 বিশেষ অফার: আজই অর্ডার করুন এবং পেয়ে যান
+            </h3>
 
-              @keyframes pulse-slow {
-                0%,
-                100% {
-                  opacity: 0.1;
-                  transform: scale(1);
-                }
-                50% {
-                  opacity: 0.2;
-                  transform: scale(1.1);
-                }
-              }
+            <div className="grid md:grid-cols-3 gap-6 mb-6 relative z-10">
+              {[
+                "🚚 ফ্রি হোম ডেলিভারি",
+                "💰 ক্যাশ অন ডেলিভারি",
+                "↩️ ৭ দিন রিটার্ন পলিসি",
+              ].map((offer, index) => (
+                <div
+                  key={index}
+                  className="offer-item bg-white/20 backdrop-blur-sm rounded-xl p-4 transform hover:scale-105 transition-all duration-300 hover:bg-white/30 cursor-pointer"
+                >
+                  <p className="font-semibold">{offer}</p>
+                </div>
+              ))}
+            </div>
 
-              @keyframes bounce-slow {
-                0%,
-                100% {
-                  transform: translateY(0);
+            <button
+              onClick={handleOrderClick}
+              className={`order-button relative bg-white text-green-700 px-8 py-4 rounded-full font-bold text-lg hover:shadow-2xl transition-all duration-300 transform ${
+                isClicked ? "scale-95" : "hover:scale-105"
+              } overflow-hidden`}
+            >
+              🎁 আমি আজই অর্ডার করতে চাই
+              {/* Ripple effect container */}
+              <style jsx>{`
+                .ripple-effect {
+                  position: absolute;
+                  border-radius: 50%;
+                  background: rgba(255, 255, 255, 0.6);
+                  transform: scale(0);
+                  animation: ripple 0.6s linear;
                 }
-                50% {
-                  transform: translateY(-10px);
+
+                @keyframes ripple {
+                  to {
+                    transform: scale(4);
+                    opacity: 0;
+                  }
                 }
-              }
 
-              @keyframes ping-slow {
-                0% {
-                  transform: scale(1);
-                  opacity: 0.1;
+                @keyframes float {
+                  0%,
+                  100% {
+                    transform: translateY(0px) rotate(0deg);
+                  }
+                  50% {
+                    transform: translateY(-10px) rotate(180deg);
+                  }
                 }
-                75%,
-                100% {
-                  transform: scale(2);
-                  opacity: 0;
+
+                @keyframes pulse-slow {
+                  0%,
+                  100% {
+                    opacity: 0.1;
+                    transform: scale(1);
+                  }
+                  50% {
+                    opacity: 0.2;
+                    transform: scale(1.1);
+                  }
                 }
-              }
 
-              .animate-float {
-                animation: float 6s ease-in-out infinite;
-              }
+                @keyframes bounce-slow {
+                  0%,
+                  100% {
+                    transform: translateY(0);
+                  }
+                  50% {
+                    transform: translateY(-10px);
+                  }
+                }
 
-              .animate-pulse-slow {
-                animation: pulse-slow 4s ease-in-out infinite;
-              }
+                @keyframes ping-slow {
+                  0% {
+                    transform: scale(1);
+                    opacity: 0.1;
+                  }
+                  75%,
+                  100% {
+                    transform: scale(2);
+                    opacity: 0;
+                  }
+                }
 
-              .animate-bounce-slow {
-                animation: bounce-slow 3s ease-in-out infinite;
-              }
+                .animate-float {
+                  animation: float 6s ease-in-out infinite;
+                }
 
-              .animate-ping-slow {
-                animation: ping-slow 2s ease-out infinite;
-              }
-            `}</style>
-          </button>
+                .animate-pulse-slow {
+                  animation: pulse-slow 4s ease-in-out infinite;
+                }
+
+                .animate-bounce-slow {
+                  animation: bounce-slow 3s ease-in-out infinite;
+                }
+
+                .animate-ping-slow {
+                  animation: ping-slow 2s ease-out infinite;
+                }
+              `}</style>
+            </button>
+          </div>
         </div>
-      </div>
-    </section>
+      </section>
+
+      {/* Order Modal */}
+      <OrderModal
+        showOrderModal={showOrderModal}
+        setShowOrderModal={setShowOrderModal}
+        orderForm={orderForm}
+        setOrderForm={setOrderForm}
+        handleOrderSubmit={handleOrderSubmit}
+        sizes={sizes}
+      />
+
+      {/* Success Message */}
+      <SuccessMessage
+        showSuccessMessage={showSuccessMessage}
+        closeSuccessMessage={closeSuccessMessage}
+        orderForm={orderForm}
+        setShowOrderModal={setShowOrderModal}
+      />
+    </>
   );
 };
 

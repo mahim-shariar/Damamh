@@ -1,10 +1,28 @@
 import React, { useState, useEffect } from "react";
-import { FiShoppingBag, FiPhone, FiMail, FiMenu, FiX } from "react-icons/fi";
+import {
+  FiShoppingBag,
+  FiPhone,
+  FiMail,
+  FiMenu,
+  FiX,
+  FiUser,
+} from "react-icons/fi";
 import { motion, AnimatePresence } from "framer-motion";
+import { useAuth } from "../context/AuthContext";
+import useFetch from "../hooks/useFetch";
 
 const Header = () => {
   const [isScrolled, setIsScrolled] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  const [isProfileMenuOpen, setIsProfileMenuOpen] = useState(false);
+  const [contactInfo, setContactInfo] = useState({
+    email: "support@damaham.com",
+    phoneNumber: "০১৭XXXXXXXX",
+  });
+  const [hasFetchedContactInfo, setHasFetchedContactInfo] = useState(false);
+
+  const { admin, isAuthenticated, logout } = useAuth();
+  const { get } = useFetch();
 
   useEffect(() => {
     const handleScroll = () => {
@@ -15,6 +33,52 @@ const Header = () => {
     return () => window.removeEventListener("scroll", handleScroll);
   }, []);
 
+  // Fetch contact information from API - only once
+  useEffect(() => {
+    const fetchContactInfo = async () => {
+      // Prevent multiple calls
+      if (hasFetchedContactInfo) return;
+
+      try {
+        const response = await get("/website-content/contact");
+        if (response.success) {
+          setContactInfo(response.data.contact);
+          setHasFetchedContactInfo(true); // Mark as fetched
+        }
+      } catch (error) {
+        console.error("Failed to fetch contact info:", error);
+        setHasFetchedContactInfo(true); // Mark as fetched even on error to prevent retries
+      }
+    };
+
+    fetchContactInfo();
+  }, [get, hasFetchedContactInfo]); // Add hasFetchedContactInfo as dependency
+
+  // Alternative solution if the above still causes issues:
+  // useEffect(() => {
+  //   const fetchContactInfo = async () => {
+  //     try {
+  //       const response = await get("/website-content/contact");
+  //       if (response.success) {
+  //         setContactInfo(response.data.contact);
+  //       }
+  //     } catch (error) {
+  //       console.error("Failed to fetch contact info:", error);
+  //     }
+  //   };
+
+  //   // Use a flag to track if we've already made the request
+  //   let isMounted = true;
+
+  //   if (isMounted) {
+  //     fetchContactInfo();
+  //   }
+
+  //   return () => {
+  //     isMounted = false;
+  //   };
+  // }, []); // Empty dependency array - only run once on mount
+
   const menuItems = [
     { name: "হোম", href: "#home" },
     { name: "বিশেষত্ব", href: "#features" },
@@ -22,6 +86,16 @@ const Header = () => {
     { name: "রিভিউ", href: "#reviews" },
     { name: "জিজ্ঞাসা", href: "#faq" },
   ];
+
+  const handleLogout = async () => {
+    await logout();
+    setIsProfileMenuOpen(false);
+  };
+
+  const handleDashboard = () => {
+    window.location.href = "/dashboard";
+    setIsProfileMenuOpen(false);
+  };
 
   const containerVariants = {
     hidden: { opacity: 0, y: -20 },
@@ -61,6 +135,27 @@ const Header = () => {
       x: 0,
       transition: {
         duration: 0.4,
+        ease: "easeOut",
+      },
+    },
+  };
+
+  const profileMenuVariants = {
+    closed: {
+      opacity: 0,
+      scale: 0.95,
+      y: -10,
+      transition: {
+        duration: 0.2,
+        ease: "easeInOut",
+      },
+    },
+    open: {
+      opacity: 1,
+      scale: 1,
+      y: 0,
+      transition: {
+        duration: 0.3,
         ease: "easeOut",
       },
     },
@@ -153,7 +248,7 @@ const Header = () => {
               ))}
             </motion.nav>
 
-            {/* Contact Info & CTA */}
+            {/* Contact Info & Auth */}
             <motion.div
               variants={containerVariants}
               className="hidden md:flex items-center space-x-6"
@@ -161,7 +256,7 @@ const Header = () => {
               {/* Contact Info */}
               <div className="flex items-center space-x-4">
                 <motion.a
-                  href="tel:017XXXXXXXX"
+                  href={`tel:${contactInfo.phoneNumber}`}
                   whileHover={{ scale: 1.05, y: -2 }}
                   className="flex items-center space-x-2 group"
                 >
@@ -171,13 +266,13 @@ const Header = () => {
                   <div className="text-left">
                     <p className="text-xs text-gray-600 font-medium">কল করুন</p>
                     <p className="text-sm font-bold text-gray-800">
-                      ০১৭XXXXXXXX
+                      {contactInfo.phoneNumber}
                     </p>
                   </div>
                 </motion.a>
 
                 <motion.a
-                  href="mailto:support@damaham.com"
+                  href={`mailto:${contactInfo.email}`}
                   whileHover={{ scale: 1.05, y: -2 }}
                   className="flex items-center space-x-2 group"
                 >
@@ -187,35 +282,74 @@ const Header = () => {
                   <div className="text-left">
                     <p className="text-xs text-gray-600 font-medium">ইমেইল</p>
                     <p className="text-sm font-bold text-gray-800">
-                      support@damaham.com
+                      {contactInfo.email}
                     </p>
                   </div>
                 </motion.a>
               </div>
 
-              {/* CTA Button */}
-              <motion.button
-                whileHover={{
-                  scale: 1.05,
-                  boxShadow: "0 10px 30px rgba(5, 150, 105, 0.4)",
-                }}
-                whileTap={{ scale: 0.95 }}
-                className="bg-gradient-to-r from-green-600 to-emerald-600 text-white px-8 py-3 rounded-2xl font-bold text-sm hover:shadow-2xl transition-all duration-300 flex items-center space-x-2 relative overflow-hidden group"
-              >
-                <div className="absolute inset-0 bg-gradient-to-r from-white/20 to-transparent transform -skew-x-12 -translate-x-full group-hover:translate-x-full transition-transform duration-700" />
-                <motion.div
-                  animate={{ rotate: [0, 360] }}
-                  transition={{
-                    duration: 20,
-                    repeat: Infinity,
-                    ease: "linear",
-                  }}
-                  className="w-5 h-5 bg-white rounded-full flex items-center justify-center"
-                >
-                  <span className="text-green-600 text-xs font-black">✓</span>
-                </motion.div>
-                <span>অর্ডার করুন</span>
-              </motion.button>
+              {/* Auth Section */}
+              <div className="relative">
+                {!isAuthenticated ? (
+                  <div></div>
+                ) : (
+                  <motion.div className="relative">
+                    <motion.button
+                      whileHover={{ scale: 1.05 }}
+                      whileTap={{ scale: 0.95 }}
+                      onClick={() => setIsProfileMenuOpen(!isProfileMenuOpen)}
+                      className="w-12 h-12 bg-gradient-to-r from-purple-600 to-pink-600 rounded-2xl flex items-center justify-center shadow-lg text-white relative overflow-hidden group"
+                    >
+                      <div className="absolute inset-0 bg-gradient-to-r from-white/20 to-transparent transform -skew-x-12 -translate-x-full group-hover:translate-x-full transition-transform duration-700" />
+                      <FiUser className="text-lg" />
+                    </motion.button>
+
+                    {/* Profile Dropdown */}
+                    <AnimatePresence>
+                      {isProfileMenuOpen && (
+                        <motion.div
+                          variants={profileMenuVariants}
+                          initial="closed"
+                          animate="open"
+                          exit="closed"
+                          className="absolute top-full right-0 mt-2 w-48 bg-white/95 backdrop-blur-xl rounded-2xl shadow-2xl border border-white/20 overflow-hidden z-50"
+                        >
+                          <div className="p-2">
+                            <div className="px-3 py-2 border-b border-gray-100">
+                              <p className="text-sm font-semibold text-gray-800">
+                                {admin?.name || "Admin"}
+                              </p>
+                              <p className="text-xs text-gray-600 truncate">
+                                {admin?.email}
+                              </p>
+                            </div>
+
+                            <motion.button
+                              whileHover={{
+                                backgroundColor: "rgba(124, 58, 237, 0.1)",
+                              }}
+                              onClick={handleDashboard}
+                              className="w-full text-left px-3 py-2 text-sm text-gray-700 hover:text-purple-600 transition-colors duration-200 rounded-lg"
+                            >
+                              ড্যাশবোর্ড
+                            </motion.button>
+
+                            <motion.button
+                              whileHover={{
+                                backgroundColor: "rgba(239, 68, 68, 0.1)",
+                              }}
+                              onClick={handleLogout}
+                              className="w-full text-left px-3 py-2 text-sm text-red-600 hover:text-red-700 transition-colors duration-200 rounded-lg"
+                            >
+                              লগআউট
+                            </motion.button>
+                          </div>
+                        </motion.div>
+                      )}
+                    </AnimatePresence>
+                  </motion.div>
+                )}
+              </div>
             </motion.div>
 
             {/* Mobile Menu Button */}
@@ -301,7 +435,7 @@ const Header = () => {
                 {/* Mobile Contact Info */}
                 <div className="space-y-4 mb-8">
                   <motion.a
-                    href="tel:017XXXXXXXX"
+                    href={`tel:${contactInfo.phoneNumber}`}
                     initial={{ opacity: 0, y: 20 }}
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ delay: 0.5 }}
@@ -312,12 +446,14 @@ const Header = () => {
                     </div>
                     <div>
                       <p className="text-sm text-gray-600">কল করুন</p>
-                      <p className="font-bold text-gray-800">০১৭XXXXXXXX</p>
+                      <p className="font-bold text-gray-800">
+                        {contactInfo.phoneNumber}
+                      </p>
                     </div>
                   </motion.a>
 
                   <motion.a
-                    href="mailto:support@damaham.com"
+                    href={`mailto:${contactInfo.email}`}
                     initial={{ opacity: 0, y: 20 }}
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ delay: 0.6 }}
@@ -329,22 +465,47 @@ const Header = () => {
                     <div>
                       <p className="text-sm text-gray-600">ইমেইল করুন</p>
                       <p className="font-bold text-gray-800">
-                        support@damaham.com
+                        {contactInfo.email}
                       </p>
                     </div>
                   </motion.a>
                 </div>
 
-                {/* Mobile CTA Button */}
-                <motion.button
+                {/* Mobile Auth Button */}
+                <motion.div
                   initial={{ opacity: 0, y: 20 }}
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ delay: 0.7 }}
-                  whileTap={{ scale: 0.95 }}
-                  className="w-full bg-gradient-to-r from-green-600 to-emerald-600 text-white py-4 rounded-2xl font-bold text-lg shadow-lg hover:shadow-xl transition-all duration-300 flex items-center justify-center space-x-2"
                 >
-                  <span>📦 অর্ডার করুন</span>
-                </motion.button>
+                  {!isAuthenticated ? (
+                    <div></div>
+                  ) : (
+                    <div className="space-y-2">
+                      <div className="p-4 bg-purple-50 rounded-2xl border border-purple-100">
+                        <p className="text-sm font-semibold text-gray-800">
+                          {admin?.name || "Admin"}
+                        </p>
+                        <p className="text-xs text-gray-600">{admin?.email}</p>
+                      </div>
+
+                      <motion.button
+                        whileTap={{ scale: 0.95 }}
+                        onClick={handleDashboard}
+                        className="w-full bg-gradient-to-r from-purple-600 to-pink-600 text-white py-3 rounded-2xl font-bold text-sm shadow-lg hover:shadow-xl transition-all duration-300"
+                      >
+                        ড্যাশবোর্ড
+                      </motion.button>
+
+                      <motion.button
+                        whileTap={{ scale: 0.95 }}
+                        onClick={handleLogout}
+                        className="w-full bg-gradient-to-r from-red-600 to-pink-600 text-white py-3 rounded-2xl font-bold text-sm shadow-lg hover:shadow-xl transition-all duration-300"
+                      >
+                        লগআউট
+                      </motion.button>
+                    </div>
+                  )}
+                </motion.div>
               </div>
             </motion.div>
           </>
