@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useRef } from "react";
 import { FaPencilRuler } from "react-icons/fa";
 import {
   FiPocket,
@@ -25,18 +25,19 @@ const SolutionSection = () => {
   });
   const [product, setProduct] = useState(null);
   const [imageErrors, setImageErrors] = useState({});
-  const [hasFetchedProduct, setHasFetchedProduct] = useState(false);
 
   const { get } = useFetch();
+  const hasFetchedProductRef = useRef(false); // Use ref instead of state
 
   // Fetch product data - FIXED: Run only once
   React.useEffect(() => {
     const fetchProduct = async () => {
-      // Prevent multiple calls
-      if (hasFetchedProduct) return;
+      // Prevent multiple calls using ref
+      if (hasFetchedProductRef.current) return;
 
       try {
         console.log("Fetching product data...");
+        hasFetchedProductRef.current = true; // Set immediately to prevent concurrent calls
         const response = await get("/products");
         if (response.success && response.data.product) {
           setProduct(response.data.product);
@@ -45,13 +46,11 @@ const SolutionSection = () => {
         }
       } catch (error) {
         console.error("Failed to fetch product:", error);
-      } finally {
-        setHasFetchedProduct(true);
       }
     };
 
     fetchProduct();
-  }, [get, hasFetchedProduct]); // Add hasFetchedProduct to dependencies
+  }, [get]); // Remove hasFetchedProduct from dependencies
 
   // Handle image load errors
   const handleImageError = (slideId) => {

@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import {
   FiPhone,
   FiMail,
@@ -18,11 +18,11 @@ const Footer = () => {
     email: "support@damaham.com",
     phoneNumber: "০১৭XXXXXXXX",
   });
-  const [hasFetchedContact, setHasFetchedContact] = useState(false);
   const [isAdminLoggedIn, setIsAdminLoggedIn] = useState(false);
   const [adminUser, setAdminUser] = useState(null);
 
   const { get } = useFetch();
+  const hasFetchedContactRef = useRef(false); // Use ref instead of state
 
   // Check if admin is already logged in
   useEffect(() => {
@@ -44,13 +44,14 @@ const Footer = () => {
     checkAdminStatus();
   }, []);
 
-  // Fetch contact information
+  // Fetch contact information - only once
   useEffect(() => {
     const fetchContactInfo = async () => {
-      if (hasFetchedContact) return;
+      if (hasFetchedContactRef.current) return;
 
       try {
         console.log("Fetching contact information...");
+        hasFetchedContactRef.current = true;
         const response = await get("/website-content/contact");
 
         if (response.success && response.data.contact) {
@@ -63,13 +64,11 @@ const Footer = () => {
       } catch (error) {
         console.error("Failed to fetch contact information:", error);
         // Keep default values if fetch fails
-      } finally {
-        setHasFetchedContact(true);
       }
     };
 
     fetchContactInfo();
-  }, [get, hasFetchedContact]);
+  }, [get]);
 
   const handleBookNowClick = () => {
     const orderSection = document.getElementById("solution");
@@ -129,7 +128,7 @@ const Footer = () => {
               <span className="font-semibold text-white">
                 আরাম + শালীনতা + মার্জিত লুক
               </span>{" "}
-              – সব একসাথে আপনার日常生活ের জন্য।
+              – সবকিছু একসাথে আপনার দৈনন্দিন জীবনের জন্য।
             </p>
             <div className="flex space-x-4">
               {[FiFacebook, FiInstagram, FiTwitter].map((Icon, index) => (

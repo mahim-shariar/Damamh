@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import {
   FiPlus,
   FiMinus,
@@ -181,7 +181,7 @@ const PriceBox = React.memo(({ onOrderClick, product }) => {
       whileInView={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.4 }}
       viewport={{ once: true, margin: "-50px" }}
-      className="mt-12 bg-gradient-to-r from-green-500 to-emerald-600 rounded-3xl p-6 text-center text-white relative overflow-hidden"
+      className="mt-12 bg-gradient-to-r from-green-500 to-emerald-600 rounded-3xl p-6 text-center text-white relative "
     >
       {/* Background decorative elements */}
       <div className="absolute top-0 left-0 w-full h-full opacity-10">
@@ -191,7 +191,7 @@ const PriceBox = React.memo(({ onOrderClick, product }) => {
 
       {/* Discount Badge */}
       {discount > 0 && (
-        <div className="absolute -top-3 -right-3 bg-red-500 text-white px-3 py-1 rounded-full text-sm font-bold z-20">
+        <div className="absolute -top-3 -right-3 bg-red-500 text-white px-3 py-1 rounded-full text-sm font-bold z-100">
           -{discount}%
         </div>
       )}
@@ -300,14 +300,11 @@ const FAQ = () => {
   const [showOrderModal, setShowOrderModal] = useState(false);
   const [showSuccessMessage, setShowSuccessMessage] = useState(false);
   const [faqs, setFaqs] = useState([]);
-  const [hasFetchedFaqs, setHasFetchedFaqs] = useState(false);
   const [contactInfo, setContactInfo] = useState({
     phoneNumber: "০১৭XXXXXXXX",
     email: "support@damaham.com",
   });
-  const [hasFetchedContactInfo, setHasFetchedContactInfo] = useState(false);
   const [product, setProduct] = useState(null);
-  const [hasFetchedProduct, setHasFetchedProduct] = useState(false);
   const [orderForm, setOrderForm] = useState({
     name: "",
     phone: "",
@@ -320,66 +317,68 @@ const FAQ = () => {
   const sizes = ["৪৮", "৫০", "৫২", "৫৪", "৫৬", "৫৮"];
   const isVisible = useScrollAnimation();
 
-  // Fetch FAQs from API
+  // Refs to track API calls
+  const hasFetchedFaqsRef = useRef(false);
+  const hasFetchedProductRef = useRef(false);
+  const hasFetchedContactInfoRef = useRef(false);
+
+  // Fetch FAQs from API - only once
   useEffect(() => {
     const fetchFAQs = async () => {
-      if (hasFetchedFaqs) return;
+      if (hasFetchedFaqsRef.current) return;
 
       try {
+        hasFetchedFaqsRef.current = true;
         const response = await get("/faqs");
         if (response.success) {
           setFaqs(response.data.faqs);
-          setHasFetchedFaqs(true);
         }
       } catch (error) {
         console.error("Failed to fetch FAQs:", error);
-        setHasFetchedFaqs(true);
       }
     };
 
     fetchFAQs();
-  }, [get, hasFetchedFaqs]);
+  }, [get]);
 
-  // Fetch product information for pricing
+  // Fetch product information for pricing - only once
   useEffect(() => {
     const fetchProduct = async () => {
-      if (hasFetchedProduct) return;
+      if (hasFetchedProductRef.current) return;
 
       try {
+        hasFetchedProductRef.current = true;
         const response = await get("/products");
         if (response.success && response.data.product) {
           setProduct(response.data.product);
         }
-        setHasFetchedProduct(true);
       } catch (error) {
         console.error("Failed to fetch product:", error);
-        setHasFetchedProduct(true);
       }
     };
 
     fetchProduct();
-  }, [get, hasFetchedProduct]);
+  }, [get]);
 
-  // Fetch contact information from API when no FAQs exist
+  // Fetch contact information from API when no FAQs exist - only once
   useEffect(() => {
     const fetchContactInfo = async () => {
       // Only fetch contact info if we have no FAQs and haven't fetched contact info yet
-      if (hasFetchedFaqs && faqs.length === 0 && !hasFetchedContactInfo) {
+      if (faqs.length === 0 && !hasFetchedContactInfoRef.current) {
         try {
+          hasFetchedContactInfoRef.current = true;
           const response = await get("/website-content/contact");
           if (response.success) {
             setContactInfo(response.data.contact);
-            setHasFetchedContactInfo(true);
           }
         } catch (error) {
           console.error("Failed to fetch contact info:", error);
-          setHasFetchedContactInfo(true);
         }
       }
     };
 
     fetchContactInfo();
-  }, [get, hasFetchedFaqs, faqs.length, hasFetchedContactInfo]);
+  }, [get, faqs.length]);
 
   // Fallback FAQs in case API fails or no FAQs exist
   const fallbackFaqs = [];
@@ -444,7 +443,7 @@ const FAQ = () => {
 
           <div className="max-w-3xl mx-auto">
             {/* Loading State */}
-            {faqs.length === 0 && !hasFetchedFaqs && (
+            {faqs.length === 0 && !hasFetchedFaqsRef.current && (
               <div className="text-center py-8">
                 <div className="inline-flex items-center space-x-2 text-gray-600">
                   <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-purple-600"></div>
@@ -474,7 +473,7 @@ const FAQ = () => {
             )}
 
             {/* No FAQs Message */}
-            {faqs.length === 0 && hasFetchedFaqs && (
+            {faqs.length === 0 && hasFetchedFaqsRef.current && (
               <div className="text-center py-8">
                 <div className="max-w-2xl mx-auto">
                   <div className="w-20 h-20 bg-gradient-to-r from-purple-100 to-pink-100 rounded-full flex items-center justify-center mx-auto mb-4">

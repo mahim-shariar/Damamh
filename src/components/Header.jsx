@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import {
   FiShoppingBag,
   FiPhone,
@@ -19,10 +19,10 @@ const Header = () => {
     email: "support@damaham.com",
     phoneNumber: "০১৭XXXXXXXX",
   });
-  const [hasFetchedContactInfo, setHasFetchedContactInfo] = useState(false);
 
   const { admin, isAuthenticated, logout } = useAuth();
   const { get } = useFetch();
+  const hasFetchedRef = useRef(false); // Use ref to track API calls
 
   useEffect(() => {
     const handleScroll = () => {
@@ -36,48 +36,22 @@ const Header = () => {
   // Fetch contact information from API - only once
   useEffect(() => {
     const fetchContactInfo = async () => {
-      // Prevent multiple calls
-      if (hasFetchedContactInfo) return;
+      // Prevent multiple calls using ref
+      if (hasFetchedRef.current) return;
 
       try {
+        hasFetchedRef.current = true; // Set immediately to prevent concurrent calls
         const response = await get("/website-content/contact");
         if (response.success) {
           setContactInfo(response.data.contact);
-          setHasFetchedContactInfo(true); // Mark as fetched
         }
       } catch (error) {
         console.error("Failed to fetch contact info:", error);
-        setHasFetchedContactInfo(true); // Mark as fetched even on error to prevent retries
       }
     };
 
     fetchContactInfo();
-  }, [get, hasFetchedContactInfo]); // Add hasFetchedContactInfo as dependency
-
-  // Alternative solution if the above still causes issues:
-  // useEffect(() => {
-  //   const fetchContactInfo = async () => {
-  //     try {
-  //       const response = await get("/website-content/contact");
-  //       if (response.success) {
-  //         setContactInfo(response.data.contact);
-  //       }
-  //     } catch (error) {
-  //       console.error("Failed to fetch contact info:", error);
-  //     }
-  //   };
-
-  //   // Use a flag to track if we've already made the request
-  //   let isMounted = true;
-
-  //   if (isMounted) {
-  //     fetchContactInfo();
-  //   }
-
-  //   return () => {
-  //     isMounted = false;
-  //   };
-  // }, []); // Empty dependency array - only run once on mount
+  }, []); // Empty dependency array - only run once on mount
 
   const menuItems = [
     { name: "হোম", href: "#home" },

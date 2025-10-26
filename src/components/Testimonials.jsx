@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { FiStar, FiMessageCircle, FiUsers } from "react-icons/fi";
 import OrderModal from "./OrderModal";
 import SuccessMessage from "./SuccessMesage";
@@ -15,30 +15,29 @@ const Testimonials = () => {
     quantity: "1",
   });
   const [reviews, setReviews] = useState([]);
-  const [hasFetchedReviews, setHasFetchedReviews] = useState(false);
 
   const { get } = useFetch();
   const sizes = ["৪৮", "৫০", "৫২", "৫৪", "৫৬", "৫৮"];
+  const hasFetchedReviewsRef = useRef(false); // Use ref instead of state
 
-  // Fetch reviews from API
+  // Fetch reviews from API - only once
   useEffect(() => {
     const fetchReviews = async () => {
-      if (hasFetchedReviews) return;
+      if (hasFetchedReviewsRef.current) return;
 
       try {
+        hasFetchedReviewsRef.current = true;
         const response = await get("/reviews?active=true");
         if (response.success) {
           setReviews(response.data.reviews);
-          setHasFetchedReviews(true);
         }
       } catch (error) {
         console.error("Failed to fetch reviews:", error);
-        setHasFetchedReviews(true);
       }
     };
 
     fetchReviews();
-  }, [get, hasFetchedReviews]);
+  }, [get]);
 
   // Use API reviews
   const testimonials = reviews.map((review) => ({
@@ -145,7 +144,7 @@ const Testimonials = () => {
           </div>
 
           {/* Show loading state if no reviews yet */}
-          {reviews.length === 0 && !hasFetchedReviews && (
+          {reviews.length === 0 && !hasFetchedReviewsRef.current && (
             <div className="text-center mt-8">
               <div className="inline-flex items-center space-x-2 text-gray-600">
                 <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-blue-600"></div>
@@ -155,7 +154,7 @@ const Testimonials = () => {
           )}
 
           {/* Show "No reviews found" message */}
-          {reviews.length === 0 && hasFetchedReviews && (
+          {reviews.length === 0 && hasFetchedReviewsRef.current && (
             <div className="text-center py-16">
               <div className="max-w-md mx-auto">
                 <div className="w-24 h-24 bg-gradient-to-r from-blue-100 to-purple-100 rounded-full flex items-center justify-center mx-auto mb-6">
@@ -224,14 +223,14 @@ const Testimonials = () => {
               onClick={handleOrderClick}
               className="bg-gradient-to-r from-orange-500 to-amber-600 text-white px-8 py-4 rounded-full font-bold text-lg hover:shadow-2xl transition-all duration-300 transform hover:scale-105"
             >
-              {reviews.length === 0 && hasFetchedReviews
+              {reviews.length === 0 && hasFetchedReviewsRef.current
                 ? "🚀 প্রথম ক্রেতা হোন এবং বিশেষ অফার পান!"
                 : "👍 আমি নিজেও ট্রাই করতে চাই!"}
             </button>
           </div>
 
           {/* Special message for no reviews case */}
-          {reviews.length === 0 && hasFetchedReviews && (
+          {reviews.length === 0 && hasFetchedReviewsRef.current && (
             <div className="text-center mt-8">
               <p className="text-gray-500 text-sm">
                 আমাদের পণ্য সম্পর্কে আপনার মতামত শুনতে আমরা উৎসুক!

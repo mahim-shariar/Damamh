@@ -43,18 +43,24 @@ const Hero = () => {
     youtubeVideoUrl: "",
   });
   const [product, setProduct] = useState(null);
-  const [hasFetchedContent, setHasFetchedContent] = useState(false);
   const [imageErrors, setImageErrors] = useState({});
 
   const { get } = useFetch();
   const sizes = ["৪৮", "৫০", "৫২", "৫৪", "৫৬", "৫৮"];
 
-  // Fetch all website content and product data
+  // Refs to track API calls
+  const hasFetchedContentRef = useRef(false);
+  const touchStartX = useRef(0);
+  const touchEndX = useRef(0);
+
+  // Fetch all website content and product data - only once
   useEffect(() => {
     const fetchWebsiteContent = async () => {
-      if (hasFetchedContent) return;
+      if (hasFetchedContentRef.current) return;
 
       try {
+        hasFetchedContentRef.current = true;
+
         // Fetch website content
         const contentResponse = await get("/website-content");
         if (contentResponse.success && contentResponse.data.content) {
@@ -74,16 +80,13 @@ const Hero = () => {
         if (productResponse.success && productResponse.data.product) {
           setProduct(productResponse.data.product);
         }
-
-        setHasFetchedContent(true);
       } catch (error) {
         console.error("Failed to fetch website content or product:", error);
-        setHasFetchedContent(true);
       }
     };
 
     fetchWebsiteContent();
-  }, [get, hasFetchedContent]);
+  }, [get]);
 
   // Extract YouTube video ID from URL
   const getYouTubeVideoId = (url) => {
@@ -178,6 +181,35 @@ const Hero = () => {
   const goToSlide = (index) => {
     setDirection(index > currentSlide ? 1 : -1);
     setCurrentSlide(index);
+  };
+
+  // Touch handlers for mobile swipe
+  const handleTouchStart = (e) => {
+    touchStartX.current = e.touches[0].clientX;
+  };
+
+  const handleTouchMove = (e) => {
+    touchEndX.current = e.touches[0].clientX;
+  };
+
+  const handleTouchEnd = () => {
+    if (!touchStartX.current || !touchEndX.current) return;
+
+    const difference = touchStartX.current - touchEndX.current;
+    const minSwipeDistance = 50;
+
+    if (Math.abs(difference) > minSwipeDistance) {
+      if (difference > 0) {
+        // Swipe left - next slide
+        nextSlide();
+      } else {
+        // Swipe right - previous slide
+        prevSlide();
+      }
+    }
+
+    touchStartX.current = 0;
+    touchEndX.current = 0;
   };
 
   const handleOrderSubmit = (e) => {
@@ -319,11 +351,11 @@ const Hero = () => {
 
   return (
     <>
-      <section className="relative min-h-screen py-10 flex items-center justify-center overflow-hidden bg-gradient-to-br from-purple-50 via-blue-50 to-pink-50">
+      <section className="relative min-h-screen py-4 md:py-10 flex items-center justify-center overflow-hidden bg-gradient-to-br from-purple-50 via-blue-50 to-pink-50">
         {/* Background Elements */}
         <div className="absolute inset-0 overflow-hidden">
           <motion.div
-            className="absolute top-20 left-10 w-72 h-72 bg-purple-200 rounded-full blur-3xl opacity-40"
+            className="absolute top-10 md:top-20 left-4 md:left-10 w-48 h-48 md:w-72 md:h-72 bg-purple-200 rounded-full blur-2xl md:blur-3xl opacity-40"
             animate={{
               scale: [1, 1.1, 1],
               opacity: [0.3, 0.5, 0.3],
@@ -331,7 +363,7 @@ const Hero = () => {
             transition={{ duration: 4, repeat: Infinity }}
           />
           <motion.div
-            className="absolute bottom-20 right-10 w-80 h-80 bg-blue-200 rounded-full blur-3xl opacity-40"
+            className="absolute bottom-10 md:bottom-20 right-4 md:right-10 w-52 h-52 md:w-80 md:h-80 bg-blue-200 rounded-full blur-2xl md:blur-3xl opacity-40"
             animate={{
               scale: [1.1, 1, 1.1],
               opacity: [0.4, 0.6, 0.4],
@@ -340,36 +372,36 @@ const Hero = () => {
           />
         </div>
 
-        <div className="container mx-auto px-4 py-16 relative z-10">
+        <div className="container mx-auto px-3 md:px-4 py-8 md:py-16 relative z-10">
           <motion.div
             ref={ref}
             variants={containerVariants}
             initial="hidden"
             animate={controls}
-            className="grid lg:grid-cols-2 gap-12 items-center"
+            className="grid lg:grid-cols-2 gap-6 md:gap-12 items-center"
           >
             {/* Content */}
-            <div className="text-center lg:text-left">
+            <div className="text-center lg:text-left order-2 lg:order-1">
               <motion.div
                 variants={itemVariants}
-                className="inline-flex items-center space-x-2 bg-white/80 backdrop-blur-md rounded-full px-6 py-3 mb-8 shadow-lg"
+                className="inline-flex items-center space-x-2 bg-white/80 backdrop-blur-md rounded-full px-4 py-2 md:px-6 md:py-3 mb-6 md:mb-8 shadow-lg"
               >
-                <FiStar className="text-yellow-500 text-xl" />
-                <span className="text-sm font-bold text-gray-800">
+                <FiStar className="text-yellow-500 text-lg md:text-xl" />
+                <span className="text-xs md:text-sm font-bold text-gray-800">
                   ১০,০০০+ সন্তুষ্ট গ্রাহক • ৪.৯/৫ রেটিং
                 </span>
               </motion.div>
 
               <motion.h1
                 variants={itemVariants}
-                className="text-4xl lg:text-6xl font-bold text-gray-900 leading-tight mb-6"
+                className="text-2xl sm:text-3xl md:text-4xl lg:text-6xl font-bold text-gray-900 leading-tight mb-4 md:mb-6"
               >
                 {renderHeroTitle()}
               </motion.h1>
 
               <motion.p
                 variants={itemVariants}
-                className="text-xl text-gray-700 mb-8 leading-relaxed"
+                className="text-base md:text-xl text-gray-700 mb-6 md:mb-8 leading-relaxed"
               >
                 {heroContent.heroSubtitle || (
                   <>
@@ -385,7 +417,7 @@ const Hero = () => {
               {/* Features */}
               <motion.div
                 variants={itemVariants}
-                className="grid grid-cols-2 gap-4 mb-8"
+                className="grid grid-cols-2 gap-2 md:gap-4 mb-6 md:mb-8"
               >
                 {[
                   { icon: FiShield, text: "পূর্ণ কভারেজ" },
@@ -396,12 +428,12 @@ const Hero = () => {
                   <motion.div
                     key={index}
                     whileHover={{ scale: 1.02 }}
-                    className="flex items-center space-x-3 bg-white/70 backdrop-blur-sm rounded-xl p-3 shadow-md"
+                    className="flex items-center space-x-2 bg-white/70 backdrop-blur-sm rounded-lg md:rounded-xl p-2 md:p-3 shadow-md"
                   >
-                    <div className="w-10 h-10 bg-gradient-to-r from-purple-500 to-pink-500 rounded-lg flex items-center justify-center">
-                      <feature.icon className="text-white text-sm" />
+                    <div className="w-8 h-8 md:w-10 md:h-10 bg-gradient-to-r from-purple-500 to-pink-500 rounded-lg flex items-center justify-center">
+                      <feature.icon className="text-white text-xs md:text-sm" />
                     </div>
-                    <span className="text-sm font-medium text-gray-800">
+                    <span className="text-xs md:text-sm font-medium text-gray-800">
                       {feature.text}
                     </span>
                   </motion.div>
@@ -411,13 +443,13 @@ const Hero = () => {
               {/* CTA Buttons */}
               <motion.div
                 variants={itemVariants}
-                className="flex flex-col sm:flex-row gap-4 justify-center lg:justify-start"
+                className="flex flex-col sm:flex-row gap-3 md:gap-4 justify-center lg:justify-start"
               >
                 <motion.button
                   onClick={() => setShowOrderModal(true)}
                   whileHover={{ scale: 1.02 }}
                   whileTap={{ scale: 0.98 }}
-                  className="bg-gradient-to-r from-purple-600 to-pink-600 text-white px-8 py-4 rounded-xl font-semibold shadow-lg hover:shadow-xl transition-all duration-300"
+                  className="bg-gradient-to-r from-purple-600 to-pink-600 text-white px-6 py-3 md:px-8 md:py-4 rounded-xl font-semibold shadow-lg hover:shadow-xl transition-all duration-300 text-sm md:text-base"
                 >
                   এখনই অর্ডার করুন
                 </motion.button>
@@ -427,13 +459,13 @@ const Hero = () => {
                   disabled={!videoId}
                   whileHover={{ scale: videoId ? 1.02 : 1 }}
                   whileTap={{ scale: videoId ? 0.98 : 1 }}
-                  className={`border-2 px-6 py-4 rounded-xl font-semibold transition-all duration-300 flex items-center justify-center space-x-2 ${
+                  className={`border-2 px-4 py-3 md:px-6 md:py-4 rounded-xl font-semibold transition-all duration-300 flex items-center justify-center space-x-2 text-sm md:text-base ${
                     videoId
                       ? "border-purple-600 text-purple-700 hover:bg-purple-50"
                       : "border-gray-400 text-gray-500 cursor-not-allowed"
                   }`}
                 >
-                  <FiPlay className="text-lg" />
+                  <FiPlay className="text-base md:text-lg" />
                   <span>ভিডিও দেখুন</span>
                 </motion.button>
               </motion.div>
@@ -441,7 +473,7 @@ const Hero = () => {
               {/* Trust Badges */}
               <motion.div
                 variants={itemVariants}
-                className="flex flex-wrap justify-center lg:justify-start gap-6 mt-8"
+                className="flex flex-wrap justify-center lg:justify-start gap-3 md:gap-6 mt-6 md:mt-8"
               >
                 {[
                   { icon: "🚚", text: "দ্রুত ডেলিভারি" },
@@ -451,10 +483,10 @@ const Hero = () => {
                   <motion.div
                     key={index}
                     whileHover={{ y: -2 }}
-                    className="flex items-center space-x-2 bg-white/80 backdrop-blur-sm rounded-lg px-3 py-2 shadow-sm"
+                    className="flex items-center space-x-1 md:space-x-2 bg-white/80 backdrop-blur-sm rounded-lg px-2 py-1 md:px-3 md:py-2 shadow-sm"
                   >
-                    <span className="text-lg">{badge.icon}</span>
-                    <span className="text-sm font-medium text-gray-700">
+                    <span className="text-sm md:text-lg">{badge.icon}</span>
+                    <span className="text-xs md:text-sm font-medium text-gray-700">
                       {badge.text}
                     </span>
                   </motion.div>
@@ -462,21 +494,29 @@ const Hero = () => {
               </motion.div>
             </div>
 
-            {/* Enhanced Image Slider - Bigger Version with Actual Product Images */}
-            <motion.div variants={itemVariants} className="relative">
+            {/* Enhanced Image Slider - Responsive Version */}
+            <motion.div
+              variants={itemVariants}
+              className="relative order-1 lg:order-2 mb-6 lg:mb-0"
+            >
               <motion.div
                 animate={{
-                  y: [0, -15, 0],
+                  y: [0, -10, 0],
                 }}
                 transition={{
                   duration: 4,
                   repeat: Infinity,
                   ease: "easeInOut",
                 }}
-                className="relative bg-white rounded-3xl shadow-2xl p-8 max-w-2xl w-full mx-auto"
+                className="relative bg-white rounded-2xl md:rounded-3xl shadow-xl md:shadow-2xl p-4 md:p-8 max-w-2xl w-full mx-auto"
               >
-                {/* Main Slider Container - Bigger */}
-                <div className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-purple-100 via-pink-100 to-blue-100 aspect-[4/5] min-h-[600px]">
+                {/* Main Slider Container - Responsive */}
+                <div
+                  className="relative overflow-hidden rounded-xl md:rounded-2xl bg-gradient-to-br from-purple-100 via-pink-100 to-blue-100 aspect-[3/4] md:aspect-[4/5] min-h-[400px] md:min-h-[600px]"
+                  onTouchStart={handleTouchStart}
+                  onTouchMove={handleTouchMove}
+                  onTouchEnd={handleTouchEnd}
+                >
                   {/* Slides */}
                   {productSlides.map((slide, index) => (
                     <motion.div
@@ -488,12 +528,12 @@ const Hero = () => {
                       className="absolute inset-0 flex items-center justify-center"
                     >
                       {/* Product Image */}
-                      <div className="relative w-full h-full flex items-center justify-center p-4">
+                      <div className="relative w-full h-full flex items-center justify-center p-2 md:p-4">
                         <motion.div
                           initial={{ scale: 0.9, opacity: 0 }}
                           animate={{ scale: 1, opacity: 1 }}
                           transition={{ delay: 0.2, duration: 0.5 }}
-                          className="relative w-full h-full flex items-center justify-center rounded-2xl overflow-hidden"
+                          className="relative w-full h-full flex items-center justify-center rounded-xl md:rounded-2xl overflow-hidden"
                         >
                           {/* Actual Product Image or Fallback Icon */}
                           {!imageErrors[slide.id] ? (
@@ -505,9 +545,9 @@ const Hero = () => {
                             />
                           ) : (
                             <div
-                              className={`w-full h-full flex items-center justify-center bg-gradient-to-br ${slide.color} rounded-2xl`}
+                              className={`w-full h-full flex items-center justify-center bg-gradient-to-br ${slide.color} rounded-xl md:rounded-2xl`}
                             >
-                              <FiImage className="text-white text-6xl opacity-70" />
+                              <FiImage className="text-white text-4xl md:text-6xl opacity-70" />
                             </div>
                           )}
 
@@ -533,28 +573,28 @@ const Hero = () => {
                     </motion.div>
                   ))}
 
-                  {/* Bigger Navigation Arrows */}
+                  {/* Responsive Navigation Arrows */}
                   <button
                     onClick={prevSlide}
-                    className="absolute left-4 top-1/2 transform -translate-y-1/2 w-14 h-14 bg-white/90 backdrop-blur-sm rounded-2xl flex items-center justify-center shadow-2xl hover:shadow-3xl transition-all duration-300 hover:scale-110 z-10 border border-white/20"
+                    className="absolute left-2 md:left-4 top-1/2 transform -translate-y-1/2 w-10 h-10 md:w-14 md:h-14 bg-white/90 backdrop-blur-sm rounded-xl md:rounded-2xl flex items-center justify-center shadow-xl md:shadow-2xl hover:shadow-3xl transition-all duration-300 hover:scale-110 z-10 border border-white/20"
                   >
-                    <FiChevronLeft className="text-gray-800 text-2xl" />
+                    <FiChevronLeft className="text-gray-800 text-lg md:text-2xl" />
                   </button>
 
                   <button
                     onClick={nextSlide}
-                    className="absolute right-4 top-1/2 transform -translate-y-1/2 w-14 h-14 bg-white/90 backdrop-blur-sm rounded-2xl flex items-center justify-center shadow-2xl hover:shadow-3xl transition-all duration-300 hover:scale-110 z-10 border border-white/20"
+                    className="absolute right-2 md:right-4 top-1/2 transform -translate-y-1/2 w-10 h-10 md:w-14 md:h-14 bg-white/90 backdrop-blur-sm rounded-xl md:rounded-2xl flex items-center justify-center shadow-xl md:shadow-2xl hover:shadow-3xl transition-all duration-300 hover:scale-110 z-10 border border-white/20"
                   >
-                    <FiChevronRight className="text-gray-800 text-2xl" />
+                    <FiChevronRight className="text-gray-800 text-lg md:text-2xl" />
                   </button>
 
-                  {/* Bigger Slide Indicators */}
-                  <div className="absolute bottom-6 left-1/2 transform -translate-x-1/2 flex space-x-3 z-10">
+                  {/* Responsive Slide Indicators */}
+                  <div className="absolute bottom-3 md:bottom-6 left-1/2 transform -translate-x-1/2 flex space-x-2 md:space-x-3 z-10">
                     {productSlides.map((_, index) => (
                       <button
                         key={index}
                         onClick={() => goToSlide(index)}
-                        className={`w-4 h-4 rounded-full transition-all duration-300 ${
+                        className={`w-2 h-2 md:w-4 md:h-4 rounded-full transition-all duration-300 ${
                           index === currentSlide
                             ? "bg-white scale-125 shadow-lg"
                             : "bg-white/50 hover:bg-white/80"
@@ -563,9 +603,9 @@ const Hero = () => {
                     ))}
                   </div>
 
-                  {/* Bigger Slide Counter */}
-                  <div className="absolute top-6 right-6 bg-black/30 backdrop-blur-sm rounded-2xl px-4 py-2">
-                    <span className="text-white text-lg font-bold">
+                  {/* Responsive Slide Counter */}
+                  <div className="absolute top-3 md:top-6 right-3 md:right-6 bg-black/30 backdrop-blur-sm rounded-lg md:rounded-2xl px-2 py-1 md:px-4 md:py-2">
+                    <span className="text-white text-sm md:text-lg font-bold">
                       {currentSlide + 1} / {productSlides.length}
                     </span>
                   </div>
@@ -573,7 +613,7 @@ const Hero = () => {
 
                 {/* Progress Bar */}
                 <motion.div
-                  className="absolute bottom-0 left-0 h-2 bg-gradient-to-r from-purple-500 to-pink-500 rounded-full"
+                  className="absolute bottom-0 left-0 h-1 md:h-2 bg-gradient-to-r from-purple-500 to-pink-500 rounded-full"
                   initial={{ width: "0%" }}
                   animate={{ width: "100%" }}
                   transition={{ duration: 4, repeat: Infinity }}
@@ -581,7 +621,7 @@ const Hero = () => {
                 />
               </motion.div>
 
-              {/* Bigger Discount Badge */}
+              {/* Responsive Discount Badge */}
               {product?.discount > 0 && (
                 <motion.div
                   animate={{
@@ -592,21 +632,23 @@ const Hero = () => {
                     duration: 3,
                     repeat: Infinity,
                   }}
-                  className="absolute -top-6 -right-6 bg-gradient-to-r from-red-500 to-pink-500 text-white rounded-2xl w-20 h-20 flex items-center justify-center shadow-2xl z-20 border-4 border-white"
+                  className="absolute -top-4 -right-4 md:-top-6 md:-right-6 bg-gradient-to-r from-red-500 to-pink-500 text-white rounded-xl md:rounded-2xl w-14 h-14 md:w-20 md:h-20 flex items-center justify-center shadow-xl md:shadow-2xl z-20 border-2 md:border-4 border-white"
                 >
                   <div className="text-center">
-                    <span className="font-black text-xl block leading-tight">
+                    <span className="font-black text-sm md:text-xl block leading-tight">
                       -{product.discount}%
                     </span>
-                    <span className="text-xs font-bold block">OFF</span>
+                    <span className="text-[10px] md:text-xs font-bold block">
+                      OFF
+                    </span>
                   </div>
                 </motion.div>
               )}
 
-              {/* New Collection Badge */}
+              {/* Responsive New Collection Badge */}
               <motion.div
                 animate={{
-                  y: [0, -10, 0],
+                  y: [0, -8, 0],
                   scale: [1, 1.05, 1],
                 }}
                 transition={{
@@ -614,21 +656,22 @@ const Hero = () => {
                   repeat: Infinity,
                   delay: 1,
                 }}
-                className="absolute -bottom-6 -left-6 bg-gradient-to-r from-green-500 to-emerald-600 text-white rounded-2xl w-24 h-24 flex items-center justify-center shadow-2xl border-4 border-white"
+                className="absolute -bottom-4 -left-4 md:-bottom-6 md:-left-6 bg-gradient-to-r from-green-500 to-emerald-600 text-white rounded-xl md:rounded-2xl w-16 h-16 md:w-24 md:h-24 flex items-center justify-center shadow-xl md:shadow-2xl border-2 md:border-4 border-white"
               >
                 <div className="text-center">
-                  <span className="text-sm font-black block leading-tight">
+                  <span className="text-xs md:text-sm font-black block leading-tight">
                     নতুন
                   </span>
-                  <span className="text-sm font-black block leading-tight">
+                  <span className="text-xs md:text-sm font-black block leading-tight">
                     কালেকশন
                   </span>
                 </div>
               </motion.div>
 
+              {/* Floating Elements - Responsive */}
               <motion.div
                 animate={{
-                  y: [0, 20, 0],
+                  y: [0, 15, 0],
                   opacity: [0.4, 0.7, 0.4],
                 }}
                 transition={{
@@ -636,11 +679,11 @@ const Hero = () => {
                   repeat: Infinity,
                   delay: 2,
                 }}
-                className="absolute -top-4 -left-8 w-6 h-6 bg-pink-400 rounded-full blur-sm"
+                className="absolute -top-2 -left-4 md:-top-4 md:-left-8 w-4 h-4 md:w-6 md:h-6 bg-pink-400 rounded-full blur-sm"
               />
               <motion.div
                 animate={{
-                  y: [0, -15, 0],
+                  y: [0, -12, 0],
                   opacity: [0.3, 0.6, 0.3],
                 }}
                 transition={{
@@ -648,7 +691,7 @@ const Hero = () => {
                   repeat: Infinity,
                   delay: 3,
                 }}
-                className="absolute -top-8 -right-4 w-7 h-7 bg-blue-400 rounded-full blur-sm"
+                className="absolute -top-4 -right-2 md:-top-8 md:-right-4 w-5 h-5 md:w-7 md:h-7 bg-blue-400 rounded-full blur-sm"
               />
             </motion.div>
           </motion.div>
@@ -685,7 +728,7 @@ const Hero = () => {
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
               onClick={closeVideoModal}
-              className="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center p-4"
+              className="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center p-2 md:p-4"
             >
               {/* Modal Content */}
               <motion.div
@@ -693,15 +736,15 @@ const Hero = () => {
                 initial="hidden"
                 animate="visible"
                 exit="exit"
-                className="relative bg-white rounded-3xl shadow-2xl max-w-4xl w-full max-h-[90vh] overflow-hidden"
+                className="relative bg-white rounded-2xl md:rounded-3xl shadow-2xl max-w-4xl w-full max-h-[90vh] overflow-hidden"
                 onClick={(e) => e.stopPropagation()}
               >
                 {/* Close Button */}
                 <button
                   onClick={closeVideoModal}
-                  className="absolute top-4 right-4 w-12 h-12 bg-white/90 backdrop-blur-sm rounded-2xl flex items-center justify-center shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-110 z-10 border border-white/20"
+                  className="absolute top-2 right-2 md:top-4 md:right-4 w-8 h-8 md:w-12 md:h-12 bg-white/90 backdrop-blur-sm rounded-xl md:rounded-2xl flex items-center justify-center shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-110 z-10 border border-white/20"
                 >
-                  <FiX className="text-gray-800 text-xl" />
+                  <FiX className="text-gray-800 text-base md:text-xl" />
                 </button>
 
                 {/* YouTube Video */}
@@ -716,11 +759,11 @@ const Hero = () => {
                 </div>
 
                 {/* Video Info */}
-                <div className="p-6 bg-gradient-to-r from-purple-600 to-pink-600">
-                  <h3 className="text-xl font-bold text-white text-center">
+                <div className="p-4 md:p-6 bg-gradient-to-r from-purple-600 to-pink-600">
+                  <h3 className="text-lg md:text-xl font-bold text-white text-center">
                     {product?.name || "Damaham Sonnoti Burka"} ভিডিও
                   </h3>
-                  <p className="text-white/80 text-center mt-2">
+                  <p className="text-white/80 text-center mt-1 md:mt-2 text-sm md:text-base">
                     আমাদের প্রিমিয়াম কোয়ালিটি বারকা সম্পর্কে বিস্তারিত জানুন
                   </p>
                 </div>
