@@ -15,7 +15,7 @@ const OrderModal = ({
   orderForm,
   setOrderForm,
   handleOrderSubmit,
-  sizes, // This prop might not be needed anymore since we get sizes from product
+  sizes,
 }) => {
   const [localOrderForm, setLocalOrderForm] = useState(orderForm);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -25,6 +25,106 @@ const OrderModal = ({
   const [hasFetchedProduct, setHasFetchedProduct] = useState(false);
 
   const { post, get } = useFetch();
+
+  // GTM Event Functions
+  const triggerGTMAddToCart = (productData, quantity = 1) => {
+    if (window.dataLayer && productData) {
+      window.dataLayer.push({
+        event: "add_to_cart",
+        product_name: productData.name || productData.title,
+        product_id: productData._id || productData.id,
+        price: productData.price,
+        quantity: quantity,
+        size: localOrderForm.size,
+        currency: "BDT",
+      });
+    }
+  };
+
+  const triggerGTMBeginCheckout = () => {
+    if (window.dataLayer) {
+      const products = getProductsForGTM();
+      window.dataLayer.push({
+        event: "begin_checkout",
+        products: products,
+        total_value: calculateTotalAmount(),
+        item_count: products.reduce(
+          (total, product) => total + product.quantity,
+          0
+        ),
+      });
+    }
+  };
+
+  const triggerGTMPurchase = (orderId) => {
+    if (window.dataLayer) {
+      const totalAmount = calculateTotalAmount();
+      const products = getProductsForGTM();
+      window.dataLayer.push({
+        event: "purchase",
+        order_id: orderId,
+        total_value: totalAmount,
+        tax: 0,
+        shipping: 0,
+        currency: "BDT",
+        products: products,
+        transaction_date: new Date().toISOString(),
+      });
+    }
+  };
+
+  const triggerGTMLeadSubmit = () => {
+    if (window.dataLayer) {
+      window.dataLayer.push({
+        event: "lead_submit",
+        user_name: localOrderForm.name,
+        user_phone: localOrderForm.phone,
+        user_location: localOrderForm.address,
+        form_type: "order_form",
+        product_interested: product?.name || "Damamah Sonnoti Burka",
+      });
+    }
+  };
+
+  const getProductsForGTM = () => {
+    const products = [];
+
+    // Main product
+    if (product) {
+      products.push({
+        product_name: product.name,
+        product_id: product._id || product.id,
+        price: product.price,
+        quantity: parseInt(localOrderForm.quantity) || 1,
+        size: localOrderForm.size,
+        category: "Burka",
+      });
+    }
+
+    // Related products
+    selectedRelatedProducts.forEach((rp) => {
+      products.push({
+        product_name: rp.title,
+        product_id: rp._id,
+        price: rp.price,
+        quantity: rp.quantity,
+        category: "Accessory",
+      });
+    });
+
+    return products;
+  };
+
+  const calculateTotalAmount = () => {
+    const mainProductTotal = product
+      ? product.price * (parseInt(localOrderForm.quantity) || 1)
+      : 0;
+    const relatedProductsTotal = selectedRelatedProducts.reduce(
+      (total, rp) => total + rp.price * rp.quantity,
+      0
+    );
+    return mainProductTotal + relatedProductsTotal;
+  };
 
   // Fetch product data when modal opens
   useEffect(() => {
@@ -37,7 +137,6 @@ const OrderModal = ({
           const productData = response.data.product;
           setProduct(productData);
 
-          // Auto-select first available size if no size is selected
           if (
             !localOrderForm.size &&
             productData.sizes &&
@@ -59,6 +158,15 @@ const OrderModal = ({
     fetchProduct();
   }, [showOrderModal, get, hasFetchedProduct, localOrderForm.size]);
 
+  // Trigger begin_checkout when modal opens with product data
+  useEffect(() => {
+    if (showOrderModal && product) {
+      setTimeout(() => {
+        triggerGTMBeginCheckout();
+      }, 500);
+    }
+  }, [showOrderModal, product]);
+
   const handleInputChange = (e) => {
     const { name, value } = e.target;
     setLocalOrderForm((prev) => ({
@@ -70,9 +178,18 @@ const OrderModal = ({
 
   const handleSizeSelect = (size) => {
     setLocalOrderForm((prev) => ({ ...prev, size }));
+
+    // Track size selection
+    if (window.dataLayer && product) {
+      window.dataLayer.push({
+        event: "product_size_select",
+        product_name: product.name,
+        product_id: product._id || product.id,
+        size: size,
+      });
+    }
   };
 
-  // Handle related product selection
   const handleRelatedProductToggle = (relatedProduct) => {
     setSelectedRelatedProducts((prev) => {
       const existingIndex = prev.findIndex(
@@ -83,20 +200,33 @@ const OrderModal = ({
         // Remove if already selected
         return prev.filter((rp) => rp._id !== relatedProduct._id);
       } else {
-        // Add with quantity 1
+        // Trigger add_to_cart for related product
+        triggerGTMAddToCart(relatedProduct, 1);
         return [...prev, { ...relatedProduct, quantity: 1 }];
       }
     });
   };
 
-  // Update related product quantity
   const updateRelatedProductQuantity = (productId, newQuantity) => {
     if (newQuantity < 1 || newQuantity > 5) return;
 
     setSelectedRelatedProducts((prev) =>
-      prev.map((rp) =>
-        rp._id === productId ? { ...rp, quantity: newQuantity } : rp
-      )
+      prev.map((rp) => {
+        if (rp._id === productId) {
+          // Track quantity change
+          if (window.dataLayer) {
+            window.dataLayer.push({
+              event: "cart_quantity_change",
+              product_name: rp.title,
+              product_id: rp._id,
+              old_quantity: rp.quantity,
+              new_quantity: newQuantity,
+            });
+          }
+          return { ...rp, quantity: newQuantity };
+        }
+        return rp;
+      })
     );
   };
 
@@ -114,7 +244,6 @@ const OrderModal = ({
       return;
     }
 
-    // Validate that selected size is available
     if (
       product &&
       product.sizes &&
@@ -134,7 +263,7 @@ const OrderModal = ({
     setSubmitError("");
 
     try {
-      // Prepare order data with related products
+      // Prepare order data
       const orderData = {
         name: localOrderForm.name.trim(),
         phone: localOrderForm.phone.trim(),
@@ -145,6 +274,8 @@ const OrderModal = ({
           _id: rp._id,
           quantity: rp.quantity,
         })),
+        total_amount: calculateTotalAmount(),
+        order_date: new Date().toISOString(),
       };
 
       // Submit order to API
@@ -152,6 +283,11 @@ const OrderModal = ({
 
       if (response.success) {
         setOrderForm(localOrderForm);
+
+        // Trigger GTM events
+        const orderId = response.data.orderId || `order_${Date.now()}`;
+        triggerGTMPurchase(orderId);
+        triggerGTMLeadSubmit();
 
         if (handleOrderSubmit) {
           handleOrderSubmit(e, response.data);
@@ -166,21 +302,55 @@ const OrderModal = ({
           quantity: "1",
         });
         setSelectedRelatedProducts([]);
+
+        // Track successful order
+        if (window.dataLayer) {
+          window.dataLayer.push({
+            event: "order_success",
+            order_id: orderId,
+            total_value: calculateTotalAmount(),
+          });
+        }
       } else {
         setSubmitError(
           response.message ||
             "অর্ডার জমা দিতে সমস্যা হয়েছে। দয়া করে আবার চেষ্টা করুন।"
         );
+
+        // Track order failure
+        if (window.dataLayer) {
+          window.dataLayer.push({
+            event: "order_failed",
+            error_message: response.message || "Unknown error",
+          });
+        }
       }
     } catch (error) {
       console.error("Order submission error:", error);
       setSubmitError("নেটওয়ার্ক সমস্যা হয়েছে। দয়া করে আবার চেষ্টা করুন।");
+
+      // Track network error
+      if (window.dataLayer) {
+        window.dataLayer.push({
+          event: "order_error",
+          error_type: "network_error",
+        });
+      }
     } finally {
       setIsSubmitting(false);
     }
   };
 
   const handleClose = () => {
+    // Track modal close
+    if (window.dataLayer && showOrderModal) {
+      window.dataLayer.push({
+        event: "checkout_abandoned",
+        products: getProductsForGTM(),
+        total_value: calculateTotalAmount(),
+      });
+    }
+
     setShowOrderModal(false);
     setSubmitError("");
     setLocalOrderForm(orderForm);
@@ -190,10 +360,7 @@ const OrderModal = ({
 
   if (!showOrderModal) return null;
 
-  // Get available sizes from product data
   const availableSizes = product?.sizes || [];
-
-  // Calculate totals
   const mainProductTotal = product
     ? product.price * (parseInt(localOrderForm.quantity) || 1)
     : 0;

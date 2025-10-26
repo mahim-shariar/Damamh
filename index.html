@@ -1,13 +1,88 @@
-<!doctype html>
+<!DOCTYPE html>
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
     <link rel="icon" type="image/svg+xml" href="/vite.svg" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Vite + React</title>
+
+    <!-- Data Layer init -->
+    <script>
+      window.dataLayer = window.dataLayer || [];
+    </script>
+
+    <!-- GTM Web Container -->
+    <script>
+      (function (w, d, s, l, i) {
+        w[l] = w[l] || [];
+        w[l].push({ "gtm.start": new Date().getTime(), event: "gtm.js" });
+        var f = d.getElementsByTagName(s)[0],
+          j = d.createElement(s),
+          dl = l != "dataLayer" ? "&l=" + l : "";
+        j.async = true;
+        j.src = "https://www.googletagmanager.com/gtm.js?id=" + i + dl;
+        f.parentNode.insertBefore(j, f);
+      })(window, document, "script", "dataLayer", "GTM-TC53WCDN");
+    </script>
   </head>
   <body>
+    <!-- GTM noscript -->
+    <noscript>
+      <iframe
+        src="https://www.googletagmanager.com/ns.html?id=GTM-TC53WCDN"
+        height="0"
+        width="0"
+        style="display: none; visibility: hidden"
+      ></iframe>
+    </noscript>
+
     <div id="root"></div>
     <script type="module" src="/src/main.jsx"></script>
+
+    <!-- Custom Event JS (Web → Server) -->
+    <script>
+      // ✅ Push Page View
+      dataLayer.push({ event: "page_view", page_url: window.location.href });
+
+      // ✅ Add to Cart
+      function addToCart(product) {
+        dataLayer.push({
+          event: "add_to_cart",
+          product_name: product.name,
+          product_id: product.id,
+          price: product.price,
+        });
+      }
+
+      // ✅ Checkout
+      function beginCheckout() {
+        dataLayer.push({ event: "begin_checkout" });
+      }
+
+      // ✅ Purchase
+      function completePurchase(orderId, total) {
+        dataLayer.push({
+          event: "purchase",
+          order_id: orderId,
+          total_value: total,
+        });
+      }
+
+      // ✅ Lead Form Submit
+      function submitLead(name, phone, location) {
+        dataLayer.push({
+          event: "lead_submit",
+          user_name: name,
+          user_phone: phone,
+          user_location: location,
+        });
+      }
+
+      // Make functions globally available
+      window.addToCart = addToCart;
+      window.beginCheckout = beginCheckout;
+      window.completePurchase = completePurchase;
+      window.submitLead = submitLead;
+    </script>
   </body>
 </html>
